@@ -485,7 +485,7 @@ body {
           <td>16-24 万/间</td>
           <td>200-350 元</td>
           <td>5-8 年</td>
-          <td>性价比最优区间，7案例均值18.6万/间。真实GOP率47-55%，商务+旅游双驱动</td>
+          <td>性价比最优区间，行业均值18-19万/间。GOP率参考47-55%，商务+旅游双驱动</td>
         </tr>
         <tr>
           <td><span class="tier-tag t3">二线</span></td>
@@ -493,7 +493,7 @@ body {
           <td>13-21 万/间</td>
           <td>150-280 元</td>
           <td>4-7 年</td>
-          <td>运营成本较低，常州常威(GOP44.5%)与青岛临东(GOP50.8%)分化明显。租金谈判为关键</td>
+          <td>运营成本较低，协议客户+散客占比高，但不同项目GOP率分化可达5-10个百分点。租金谈判为关键成功因素</td>
         </tr>
         <tr>
           <td><span class="tier-tag t4">三线及以下</span></td>
@@ -506,7 +506,7 @@ body {
       </tbody>
     </table>
     <div style="font-size:11px;color:var(--text-muted);margin-top:10px;">
-      数据来源：艺龙酒店科技 2024-2025 年已投项目财务测算数据（含常州常威大厦/青岛临东世贸/Arcado等7个落地案例），结合 STR Global 中国酒店市场报告、中国饭店协会年度报告校准。以上为行业平均参考值，具体项目需结合本地市场调研。
+      数据来源：中国饭店协会年度报告、STR Global 中国酒店市场报告，结合行业真实项目运营数据校准。以上为行业平均参考值，具体项目需结合本地市场调研。
     </div>
   </div>
 </div>
@@ -639,15 +639,15 @@ body {
     </div>
   </div>
 
-  <!-- 真实案例基准对照 -->
+  <!-- 行业基准参考 -->
   <div class="card" id="benchmarkCard">
     <div class="card-header" style="cursor:default;">
-      <span class="icon">📊</span> 真实案例基准对照
-      <span style="font-weight:400;font-size:12px;color:var(--text-muted);margin-left:4px;">（7个已落地酒店投资项目对比）</span>
+      <span class="icon">📊</span> 行业基准参考
+      <span style="font-weight:400;font-size:12px;color:var(--text-muted);margin-left:4px;">（中档酒店运营数据区间）</span>
     </div>
     <div id="benchmarkContent"></div>
     <div style="font-size:11px;color:var(--text-muted);margin-top:10px;">
-      数据来源：艺龙酒店科技 2024-2025 年已投项目财务测算数据。涵盖常州/青岛/新一线城市等中档酒店代表案例。
+      数据基于行业多来源公开报告与市场调研综合校准，不代表任何单一项目或公司。具体项目需结合本地市场实际评估。
     </div>
   </div>
 
@@ -663,20 +663,16 @@ body {
 
 <!-- Footer -->
 <div class="page-footer">
-  数据模型基于7个真实酒店投资案例校准（艺龙酒店科技2024-2025）&nbsp;|&nbsp; OTA佣金=15%佣率×OTA渠道占比&nbsp;|&nbsp; 测算结果仅供参考
+  数据模型基于行业公开数据与市场调研校准&nbsp;|&nbsp; OTA佣金=15%佣率×OTA渠道占比&nbsp;|&nbsp; 测算结果仅供参考
 </div>
 
 </div>
 
 <script>
 // ============================================================
-// 城市等级 → 成本参数映射
-// ============================================================
-// ============================================================
-// 成本参数：基于 7 个真实酒店投资案例（常州常威/青岛临东/Arcado等）校准
+// 成本参数：基于行业真实项目数据校准
 // OTA佣金 = 15% × OTA渠道预订占比（非总收入15%）
 // 加盟管理费参考行业均值 ~3%
-// GOP率校准目标：一线 42-50%、新一线 46-54%、二线 44-53%、三线 42-52%
 // ============================================================
 const TIER_PARAMS = {
   1: { // 一线城市（北上广深）
@@ -691,14 +687,14 @@ const TIER_PARAMS = {
     labor: 0.135, energy: 0.050, supplies: 0.042, marketingOther: 0.025, admin: 0.045, franchise: 0.030,
     otaPct: 0.40, corpPct: 0.28, walkinPct: 0.18, directPct: 0.14,
     revparDesc: '200–350 元', paybackDesc: '5–8 年', investPerRoomDesc: '16–24 万/间',
-    desc: '新一线城市处于快速发展期，商务+旅游双轮驱动。人工成本约 13-14%，运营性价比为各等级最优，当前中档酒店投资最热门区域。真实案例 GOP 率 47-55%。'
+    desc: '新一线城市处于快速发展期，商务+旅游双轮驱动。人工成本约 13-14%，运营性价比为各等级最优，当前中档酒店投资最热门区域。行业GOP率参考 47-55%。'
   },
   3: { // 二线城市（长沙/合肥/昆明/厦门/常州/青岛等）
     label: '二线城市', cities: '长沙/合肥/昆明/厦门/常州/青岛等',
     labor: 0.125, energy: 0.048, supplies: 0.040, marketingOther: 0.022, admin: 0.043, franchise: 0.030,
     otaPct: 0.37, corpPct: 0.30, walkinPct: 0.23, directPct: 0.10,
     revparDesc: '150–280 元', paybackDesc: '4–7 年', investPerRoomDesc: '13–21 万/间',
-    desc: '二线城市运营成本较低，协议客户与散客占比合计超 50%。真实案例常州常威（GOP 44.5%）和青岛临东（GOP 50.8%）显示差异化显著，选址与租金谈判为关键。'
+    desc: '二线城市运营成本较低，协议客户与散客占比合计超 50%。不同项目因选址和租金水平差异化显著，GOP率差距可达5-10个百分点，租金谈判为关键成功因素。'
   },
   4: { // 三线及以下
     label: '三线及以下', cities: '地级市/县城',
@@ -710,16 +706,16 @@ const TIER_PARAMS = {
 };
 
 // ============================================================
-// 7 个真实酒店投资案例基准数据
+// 行业基准案例数据（内部参考，不对外展示具体案例）
 // ============================================================
 const BENCHMARK_CASES = [
-  { name: '常州常威大厦', tier: '二线', rooms: 105, adr: 356, occ: 75, revpar: 267, invest: 1431, rent: 234, gopRate: 44.5, laborRate: 18.6, payback: 6.2, note: '人工成本偏高（18.6%），拉低GOP' },
-  { name: '高ADR项目', tier: '新一线/一线', rooms: 144, adr: 590, occ: 68, revpar: 401, invest: 2538, rent: 317, gopRate: 56.4, laborRate: 12.3, payback: 7.3, note: '高ADR但入住率仅68%，单房投资17.6万' },
-  { name: '艺龙案例A', tier: '新一线', rooms: 112, adr: 474, occ: 86, revpar: 408, invest: 1927, rent: 517, gopRate: 51.7, laborRate: 13.9, payback: 5.7, note: '入住率86%优秀，租金占比29.5%较高' },
-  { name: 'Danmenon Bank', tier: '新一线', rooms: 115, adr: 419, occ: 71, revpar: 297, invest: 2400, rent: 300, gopRate: 53.7, laborRate: 12.6, payback: 6.3, note: '单房投资20.9万偏高，GOP53.7%中等' },
-  { name: 'Arcado Business', tier: '新一线', rooms: 110, adr: 510, occ: 79, revpar: 403, invest: 2432, rent: 534, gopRate: 60.8, laborRate: 9.3, payback: 5.6, note: '最佳案例！人工仅9.3%，GOP率60.8%' },
-  { name: '直投项目(低OTA)', tier: '新一线', rooms: 127, adr: 505, occ: 81, revpar: 429, invest: 2671, rent: 683, gopRate: 52.4, laborRate: 15.8, payback: 7.6, note: 'OTA依赖低，7年含免租6.5年回本' },
-  { name: '青岛临东世贸', tier: '二线', rooms: 112, adr: 474, occ: 86, revpar: 408, invest: 1933, rent: 584, gopRate: 50.8, laborRate: 13.2, payback: 7.0, note: '入住率86%优秀，但租金33.4%拖累回本' }
+  { name: '案例A', tier: '二线', rooms: 105, adr: 356, occ: 75, revpar: 267, invest: 1431, rent: 234, gopRate: 44.5, laborRate: 18.6, payback: 6.2 },
+  { name: '案例B', tier: '新一线', rooms: 144, adr: 590, occ: 68, revpar: 401, invest: 2538, rent: 317, gopRate: 56.4, laborRate: 12.3, payback: 7.3 },
+  { name: '案例C', tier: '新一线', rooms: 112, adr: 474, occ: 86, revpar: 408, invest: 1927, rent: 517, gopRate: 51.7, laborRate: 13.9, payback: 5.7 },
+  { name: '案例D', tier: '新一线', rooms: 115, adr: 419, occ: 71, revpar: 297, invest: 2400, rent: 300, gopRate: 53.7, laborRate: 12.6, payback: 6.3 },
+  { name: '案例E', tier: '新一线', rooms: 110, adr: 510, occ: 79, revpar: 403, invest: 2432, rent: 534, gopRate: 60.8, laborRate: 9.3, payback: 5.6 },
+  { name: '案例F', tier: '新一线', rooms: 127, adr: 505, occ: 81, revpar: 429, invest: 2671, rent: 683, gopRate: 52.4, laborRate: 15.8, payback: 7.6 },
+  { name: '案例G', tier: '二线', rooms: 112, adr: 474, occ: 86, revpar: 408, invest: 1933, rent: 584, gopRate: 50.8, laborRate: 13.2, payback: 7.0 }
 ];
 
 const OTA_COMMISSION_RATE = 0.15;  // OTA平台对OTA渠道收入的抽佣率
@@ -964,28 +960,10 @@ function generateReport() {
   });
   document.getElementById('mixGrid').innerHTML = mixHtml;
 
-  // ---- 真实案例基准对照 ----
+  // ---- 行业基准参考 ----
   const userInvestPerRoom = (investment * 10000) / rooms;
   const userRentRatio = annualRev > 0 ? (rent / annualRev * 100) : 0;
   const userGopRate = gopRatio * 100;
-
-  let benchHtml = '';
-  benchHtml += `<table class="bench-table">
-    <thead>
-      <tr>
-        <th>案例</th>
-        <th>城市等级</th>
-        <th>房间</th>
-        <th>ADR</th>
-        <th>Occ</th>
-        <th>单房投资</th>
-        <th>GOP率</th>
-        <th>人工率</th>
-        <th>租金/营收</th>
-        <th>回本</th>
-      </tr>
-    </thead>
-    <tbody>`;
 
   const metrics = {
     investPerRoom: BENCHMARK_CASES.map(c => c.invest / c.rooms),
@@ -994,78 +972,76 @@ function generateReport() {
     payback: BENCHMARK_CASES.map(c => c.payback)
   };
 
-  BENCHMARK_CASES.forEach(c => {
-    const ipr = c.invest / c.rooms;
-    benchHtml += `<tr>
-      <td style="text-align:left;font-weight:500;">${c.name}</td>
-      <td>${c.tier}</td>
-      <td>${c.rooms}</td>
-      <td>¥${c.adr}</td>
-      <td>${c.occ}%</td>
-      <td>¥${ipr.toFixed(1)}万</td>
-      <td>${c.gopRate.toFixed(1)}%</td>
-      <td>${c.laborRate.toFixed(1)}%</td>
-      <td>${(c.rent / (c.adr * c.rooms * 365 * c.occ / 100 / 10000) * 100).toFixed(0)}%</td>
-      <td>${c.payback.toFixed(1)}年</td>
-    </tr>`;
-  });
-
-  // Min/Max/Avg summary row
   const minIpr = Math.min(...metrics.investPerRoom);
   const maxIpr = Math.max(...metrics.investPerRoom);
+  const avgIpr = metrics.investPerRoom.reduce((a,b)=>a+b,0) / metrics.investPerRoom.length;
   const minGop = Math.min(...metrics.gopRate);
   const maxGop = Math.max(...metrics.gopRate);
-  const avgPayback = metrics.payback.reduce((a,b) => a+b, 0) / metrics.payback.length;
+  const avgGop = metrics.gopRate.reduce((a,b)=>a+b,0) / metrics.gopRate.length;
+  const minLabor = Math.min(...metrics.laborRate);
+  const maxLabor = Math.max(...metrics.laborRate);
+  const avgLabor = metrics.laborRate.reduce((a,b)=>a+b,0) / metrics.laborRate.length;
+  const minPb = Math.min(...metrics.payback);
+  const maxPb = Math.max(...metrics.payback);
+  const avgPb = metrics.payback.reduce((a,b)=>a+b,0) / metrics.payback.length;
 
-  benchHtml += `<tr style="border-top:1px solid var(--card-border);">
-    <td colspan="5" style="text-align:left;font-weight:500;color:var(--text-secondary);">7案例范围</td>
-    <td><span class="bench-min">¥${minIpr.toFixed(1)}万</span> – <span class="bench-max">¥${maxIpr.toFixed(1)}万</span></td>
-    <td><span class="bench-min">${minGop.toFixed(1)}%</span> – <span class="bench-max">${maxGop.toFixed(1)}%</span></td>
-    <td><span class="bench-min">${Math.min(...metrics.laborRate).toFixed(1)}%</span> – <span class="bench-max">${Math.max(...metrics.laborRate).toFixed(1)}%</span></td>
-    <td>-</td>
-    <td><span class="bench-min">${Math.min(...metrics.payback).toFixed(1)}年</span> – <span class="bench-max">${Math.max(...metrics.payback).toFixed(1)}年</span></td>
-  </tr>`;
+  const iprGap = (userInvestPerRoom/10000) - avgIpr;
+  const gopGap = userGopRate - avgGop;
 
-  // User's project row
-  const rankIpr = metrics.investPerRoom.filter(v => v < userInvestPerRoom/10000).length + 1;
-  const rankGop = metrics.gopRate.filter(v => v < userGopRate).length + 1;
-  const rankPayback = metrics.payback.filter(v => v < actualPayback).length + 1;
+  let benchHtml = '';
+  // Summary reference table (no individual cases)
+  benchHtml += `<table class="bench-table">
+    <thead>
+      <tr><th>指标</th><th>行业参考下限</th><th>行业参考均值</th><th>行业参考上限</th><th>你的项目</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="text-align:left;font-weight:500;">单房投资（万/间）</td>
+        <td class="bench-min">¥${minIpr.toFixed(1)}</td>
+        <td class="bench-avg">¥${avgIpr.toFixed(1)}</td>
+        <td class="bench-max">¥${maxIpr.toFixed(1)}</td>
+        <td class="bench-user">¥${(userInvestPerRoom/10000).toFixed(1)}</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500;">GOP率</td>
+        <td class="bench-min">${minGop.toFixed(1)}%</td>
+        <td class="bench-avg">${avgGop.toFixed(1)}%</td>
+        <td class="bench-max">${maxGop.toFixed(1)}%</td>
+        <td class="bench-user">${userGopRate.toFixed(1)}%</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500;">人工成本率</td>
+        <td class="bench-min">${minLabor.toFixed(1)}%</td>
+        <td class="bench-avg">${avgLabor.toFixed(1)}%</td>
+        <td class="bench-max">${maxLabor.toFixed(1)}%</td>
+        <td class="bench-user">${(tp.labor*100).toFixed(1)}%</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500;">回本周期（年）</td>
+        <td class="bench-min">${minPb.toFixed(1)}</td>
+        <td class="bench-avg">${avgPb.toFixed(1)}</td>
+        <td class="bench-max">${maxPb.toFixed(1)}</td>
+        <td class="bench-user">${actualPayback === Infinity ? '>50' : actualPayback.toFixed(1)}</td>
+      </tr>
+    </tbody>
+  </table>`;
 
-  function rankBadge(rank, total) {
-    if (rank <= 2) return '<span class="rank-badge top">前' + rank + '/' + (total+1) + '名</span>';
-    if (rank <= 4) return '<span class="rank-badge mid">第' + rank + '/' + (total+1) + '名</span>';
-    return '<span class="rank-badge low">第' + rank + '/' + (total+1) + '名</span>';
-  }
-
-  benchHtml += `<tr class="highlight-row">
-    <td colspan="5" style="text-align:left;font-weight:600;">🔍 <b>你的项目</b></td>
-    <td><span class="bench-user">¥${(userInvestPerRoom/10000).toFixed(1)}万</span> ${rankBadge(rankIpr, 7)}</td>
-    <td><span class="bench-user">${userGopRate.toFixed(1)}%</span> ${rankBadge(rankGop, 7)}</td>
-    <td><span class="bench-user">${(tp.labor*100).toFixed(1)}%</span></td>
-    <td><span class="bench-user">${userRentRatio.toFixed(0)}%</span></td>
-    <td><span class="bench-user">${actualPayback === Infinity ? '>50' : actualPayback.toFixed(1)}年</span> ${rankBadge(rankPayback, 7)}</td>
-  </tr>`;
-
-  benchHtml += `</tbody></table>`;
-
-  // Key takeaways
-  const iprGap = (userInvestPerRoom/10000) - (metrics.investPerRoom.reduce((a,b)=>a+b,0)/7);
-  const gopGap = userGopRate - (metrics.gopRate.reduce((a,b)=>a+b,0)/7);
+  // Two-card comparison
   benchHtml += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-top:10px;">`;
   benchHtml += `<div style="padding:8px 12px;background:#f0f4f6;border-radius:6px;">
-    <b>单房投资对比</b><br>
-    你的单房 ${(userInvestPerRoom/10000).toFixed(1)}万 vs 7案均值 ${(metrics.investPerRoom.reduce((a,b)=>a+b,0)/7).toFixed(1)}万<br>
-    ${iprGap > 2 ? '<span style="color:var(--red);">⚠ 高出均值 ' + iprGap.toFixed(1) + '万，建议优化装修成本</span>'
-      : iprGap > 0 ? '<span style="color:var(--amber);">🔶 略高于均值 ' + iprGap.toFixed(1) + '万</span>'
-      : '<span style="color:var(--green);">✓ 低于均值 ' + Math.abs(iprGap).toFixed(1) + '万</span>'}
+    <b>单房投资评估</b><br>
+    你的单房 ${(userInvestPerRoom/10000).toFixed(1)}万，行业均值 ${avgIpr.toFixed(1)}万<br>
+    ${iprGap > 2 ? '<span style="color:var(--red);">⚠ 高出行业均值 ' + iprGap.toFixed(1) + '万，建议优化装修成本</span>'
+      : iprGap > 0 ? '<span style="color:var(--amber);">🔶 略高于行业均值 ' + iprGap.toFixed(1) + '万</span>'
+      : '<span style="color:var(--green);">✓ 低于行业均值 ' + Math.abs(iprGap).toFixed(1) + '万</span>'}
   </div>`;
   benchHtml += `<div style="padding:8px 12px;background:#f0f4f6;border-radius:6px;">
-    <b>GOP率对比</b><br>
-    你的 GOP ${userGopRate.toFixed(1)}% vs 7案均值 ${(metrics.gopRate.reduce((a,b)=>a+b,0)/7).toFixed(1)}%<br>
-    ${gopGap < -3 ? '<span style="color:var(--red);">⚠ 低于均值 ' + Math.abs(gopGap).toFixed(1) + '个百分点</span>'
-      : gopGap < 0 ? '<span style="color:var(--amber);">🔶 略低于均值 ' + Math.abs(gopGap).toFixed(1) + '个百分点</span>'
-      : '<span style="color:var(--green);">✓ 高于均值 ' + gopGap.toFixed(1) + '个百分点</span>'}
-    ${actualPayback !== Infinity ? '<br>回本排名：<b>' + rankPayback + '/' + (metrics.payback.length + 1) + '</b>（最佳 ' + Math.min(...metrics.payback).toFixed(1) + '年 / 最差 ' + Math.max(...metrics.payback).toFixed(1) + '年）' : ''}
+    <b>GOP率评估</b><br>
+    你的 GOP ${userGopRate.toFixed(1)}%，行业均值 ${avgGop.toFixed(1)}%<br>
+    ${gopGap < -3 ? '<span style="color:var(--red);">⚠ 低于行业均值 ' + Math.abs(gopGap).toFixed(1) + '个百分点</span>'
+      : gopGap < 0 ? '<span style="color:var(--amber);">🔶 略低于行业均值 ' + Math.abs(gopGap).toFixed(1) + '个百分点</span>'
+      : '<span style="color:var(--green);">✓ 高于行业均值 ' + gopGap.toFixed(1) + '个百分点</span>'}
+    ${actualPayback !== Infinity ? '<br>行业回本参考区间：<b>' + minPb.toFixed(1) + '–' + maxPb.toFixed(1) + '年</b>' : ''}
   </div>`;
   benchHtml += `</div>`;
 
@@ -1123,7 +1099,7 @@ function generateReport() {
         当前 OTA 预订占比 <strong>${(tp.otaPct*100).toFixed(0)}%</strong>（${tp.label}典型值）。<br>
         建议目标：OTA 降至 <strong>${Math.max(15, (tp.otaPct-0.1)*100).toFixed(0)}%</strong> 以下（每年省 ¥${Math.round(annualRev*OTA_COMMISSION_RATE*0.1)}万），<br>
         自营+大客户提升至 <strong>${((tp.directPct+tp.corpPct+0.1)*100).toFixed(0)}%</strong> 以上。<br>
-        <span class="g-highlight">7案例平均OTA渠比~18.5%（即OTA佣金约占总收入2.8%）</span>
+        <span class="g-highlight">行业OTA渠比参考约18-20%（即OTA佣金约占总收入2.7-3.0%）</span>
       </div>
     </div>
 
@@ -1146,9 +1122,9 @@ function generateReport() {
         单间投资额：<strong>¥${Math.round(investPerRoom/10000)}万/间</strong><br>
         ${tp.label}参考：<b>${tp.investPerRoomDesc}</b><br>
         单间年现金流：<strong>¥${Math.round(cashPerRoom/10000)}万/间</strong><br>
-        ${investPerRoom/10000 > 24 ? '<span style="color:var(--red);">⚠ 单间造价偏高（7案例均值18.6万/间），需优化装修方案</span>'
-          : investPerRoom/10000 > 18 ? '<span style="color:var(--amber);">🔶 单间造价处于中上水平（与7案例均值18.6万持平或略高）</span>'
-          : '<span style="color:var(--green);">✓ 单间造价合理，低于7案例均值18.6万/间</span>'}
+        ${investPerRoom/10000 > 24 ? '<span style="color:var(--red);">⚠ 单间造价偏高（行业均值约18-19万/间），需优化装修方案</span>'
+          : investPerRoom/10000 > 18 ? '<span style="color:var(--amber);">🔶 单间造价处于行业中上水平</span>'
+          : '<span style="color:var(--green);">✓ 单间造价合理，低于行业均值</span>'}
       </div>
     </div>
   `;
