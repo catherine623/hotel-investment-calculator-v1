@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>酒店投资回报计算器</title>
+<style>
+  :root {
+    --bg-primary: #0a0e17;
+    --bg-card: #111827;
+    --bg-card-hover: #1a2332;
+    --bg-input: #0d1321;
+    --border: #1e2d3d;
+    --border-focus: #3b82f6;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --accent-blue: #3b82f6;
+    --accent-cyan: #06b6d4;
+    --accent-green: #10b981;
+    --accent-orange: #f59e0b;
+    --accent-red: #ef4444;
+    --accent-purple: #8b5cf6;
+    --accent-pink: #ec4899;
+    --gradient-1: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    --gradient-2: linear-gradient(135deg, #06b6d4, #10b981);
+    --gradient-3: linear-gradient(135deg, #f59e0b, #ef4444);
+    --shadow-lg: 0 20px 60px rgba(0,0,0,0.5);
+    --radius: 16px;
+    --radius-sm: 10px;
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background decoration */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: 
+      radial-gradient(ellipse at 20% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 50%);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 40px 0 30px;
+  }
+  .header h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    background: var(--gradient-1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+  .header .subtitle {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+  }
+
+  /* Section Cards */
+  .section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    margin-bottom: 20px;
+    transition: var(--transition);
+    box-shadow: var(--shadow-lg);
+  }
+  .section:hover {
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+  .section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .section-title .icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+  .icon-input { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+  .icon-result { background: rgba(16,185,129,0.15); color: var(--accent-green); }
+  .icon-cost { background: rgba(245,158,11,0.15); color: var(--accent-orange); }
+  .icon-month { background: rgba(139,92,246,0.15); color: var(--accent-purple); }
+  .icon-mix { background: rgba(236,72,153,0.15); color: var(--accent-pink); }
+  .section-title .collapse-arrow {
+    margin-left: auto;
+    transition: transform 0.3s;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+  .section.collapsed .section-content { display: none; }
+  .section.collapsed .collapse-arrow { transform: rotate(-90deg); }
+
+  /* Input Grid */
+  .input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .input-group label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .input-group label .hint {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+  .input-group input, .input-group select {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: var(--transition);
+    outline: none;
+  }
+  .input-group input:focus, .input-group select:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+  }
+  .input-group input::placeholder { color: var(--text-muted); }
+
+  /* Slider */
+  .slider-group {
+    grid-column: 1 / -1;
+  }
+  .slider-group input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, var(--accent-green), var(--accent-blue), var(--accent-orange), var(--accent-red));
+    outline: none;
+    margin: 10px 0;
+  }
+  .slider-group input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid var(--accent-blue);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+  .slider-value {
+    text-align: center;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--accent-blue);
+    margin-top: 4px;
+  }
+
+  /* Big Result */
+  .result-hero {
+    text-align: center;
+    padding: 10px 0;
+  }
+  .result-hero .big-number {
+    font-size: 5rem;
+    font-weight: 900;
+    background: var(--gradient-2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    margin-bottom: 4px;
+    transition: all 0.5s ease;
+  }
+  .result-hero .big-label {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    letter-spacing: 2px;
+  }
+  .result-hero .big-sub {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .result-hero .target-badge {
+    display: inline-block;
+    background: rgba(16,185,129,0.15);
+    color: var(--accent-green);
+    padding: 4px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 8px;
+    border: 1px solid rgba(16,185,129,0.3);
+  }
+
+  /* Key Metrics Cards */
+  .metrics-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+  }
+  .metric-card {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 20px;
+    text-align: center;
+    transition: var(--transition);
+  }
+  .metric-card:hover {
+    border-color: rgba(59,130,246,0.5);
+    transform: translateY(-2px);
+  }
+  .metric-card .metric-value {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+  .metric-card .metric-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .metric-card .metric-ref {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    opacity: 0.7;
+  }
+  .metric-adr .metric-value { color: var(--accent-blue); }
+  .metric-occ .metric-value { color: var(--accent-purple); }
+  .metric-rev .metric-value { color: var(--accent-cyan); }
+  .metric-cost .metric-value { color: var(--accent-orange); }
+  .metric-gop .metric-value { color: var(--accent-green); }
+
+  /* Cost Breakdown */
+  .cost-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .cost-table th, .cost-table td {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 0.9rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .cost-table th {
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .cost-table .highlight-ota {
+    background: rgba(239, 68, 68, 0.08);
+    border-left: 3px solid var(--accent-red);
+  }
+  .cost-table .highlight-ota td:first-child {
+    padding-left: 16px;
+  }
+  .cost-table .total-row td {
+    font-weight: 700;
+    color: var(--text-primary);
+    border-top: 2px solid var(--border);
+    font-size: 0.95rem;
+  }
+  .cost-table .gop-row td {
+    font-weight: 700;
+    color: var(--accent-green);
+  }
+  .percentage-bar-bg {
+    display: inline-block;
+    width: 120px;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  .percentage-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  /* OTA Warning */
+  .ota-warning {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--radius-sm);
+    padding: 14px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+  }
+  .ota-warning .warn-icon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+  }
+  .ota-warning strong { color: var(--accent-red); }
+
+  /* Monthly Chart */
+  .monthly-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 6px;
+    align-items: end;
+  }
+  .month-bar-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-height: 220px;
+    justify-content: flex-end;
+  }
+  .month-bar {
+    width: 100%;
+    max-width: 60px;
+    border-radius: 6px 6px 0 0;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    cursor: pointer;
+    min-height: 4px;
+  }
+  .month-bar:hover {
+    filter: brightness(1.3);
+    transform: scaleX(1.08);
+  }
+  .month-bar .bar-value {
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    font-weight: 700;
+    white-space: nowrap;
+    color: var(--text-secondary);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .month-bar:hover .bar-value { opacity: 1; }
+  .month-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .month-tag {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.2;
+    max-width: 60px;
+    word-break: break-all;
+  }
+  .season-legend {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .season-dot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+  }
+  .season-dot span:first-child {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+
+  /* Customer Mix */
+  .mix-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    align-items: center;
+  }
+  .mix-pie {
+    display: flex;
+    justify-content: center;
+  }
+  .mix-pie canvas { max-width: 260px; }
+  .mix-details { display: flex; flex-direction: column; gap: 16px; }
+  .mix-item { display: flex; align-items: center; gap: 12px; }
+  .mix-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .mix-info { flex: 1; }
+  .mix-name { font-size: 0.9rem; font-weight: 600; }
+  .mix-desc { font-size: 0.75rem; color: var(--text-muted); }
+  .mix-pct { font-size: 1.3rem; font-weight: 800; }
+
+  /* Flow Tips */
+  .flow-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .flow-card {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 20px;
+    transition: var(--transition);
+  }
+  .flow-card:hover {
+    border-color: rgba(59,130,246,0.4);
+  }
+  .flow-card .flow-num {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--accent-blue);
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+  .flow-card .flow-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .flow-card .flow-desc {
+    font-size: 0.83rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    border-top: 1px solid var(--border);
+    margin-top: 20px;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .container { padding: 16px 12px 40px; }
+    .section { padding: 20px 16px; }
+    .header h1 { font-size: 1.6rem; }
+    .result-hero .big-number { font-size: 3.5rem; }
+    .mix-container { grid-template-columns: 1fr; }
+    .monthly-grid { grid-template-columns: repeat(6, 1fr); gap: 4px; }
+    .month-bar-wrap { min-height: 160px; }
+    .metrics-row { grid-template-columns: repeat(2, 1fr); }
+    .cost-table th, .cost-table td { padding: 8px 6px; font-size: 0.78rem; }
+    .percentage-bar-bg { width: 60px; }
+  }
+
+  /* Tooltip */
+  .tooltip {
+    position: relative;
+    border-bottom: 1px dotted var(--accent-cyan);
+    cursor: help;
+  }
+
+  /* Animation */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .section { animation: fadeInUp 0.5s ease forwards; }
+  .section:nth-child(1) { animation-delay: 0s; }
+  .section:nth-child(2) { animation-delay: 0.1s; }
+  .section:nth-child(3) { animation-delay: 0.2s; }
+  .section:nth-child(4) { animation-delay: 0.3s; }
+  .section:nth-child(5) { animation-delay: 0.4s; }
+  .section:nth-child(6) { animation-delay: 0.5s; }
+  .section:nth-child(7) { animation-delay: 0.6s; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <h1>🏨 酒店投资回报计算器</h1>
+    <div class="subtitle">基于实际酒店运营模型 · 深度测算投资回收路径</div>
+  </div>
+
+  <!-- Section 1: Input -->
+  <div class="section" id="sec-input">
+    <div class="section-title" onclick="toggleSection('sec-input')">
+      <span class="icon icon-input">📋</span> 项目参数输入
+      <span class="collapse-arrow">▼</span>
+    </div>
+    <div class="section-content">
+      <div class="input-grid">
+        <div class="input-group">
+          <label>📍 酒店位置 <span class="hint">（城市/商圈）</span></label>
+          <input type="text" id="location" value="北京·亚运村/鸟巢商圈" placeholder="如：北京·国贸商圈">
+        </div>
+        <div class="input-group">
+          <label>💰 前期一次性总投入 <span class="hint">（万元）</span></label>
+          <input type="number" id="totalInvestment" value="3007" min="100" step="1" onchange="recalculate()">
+        </div>
+        <div class="input-group">
+          <label>🛏️ 房间量 <span class="hint">（间）</span></label>
+          <input type="number" id="roomCount" value="102" min="10" step="1" onchange="recalculate()">
+        </div>
+        <div class="input-group">
+          <label>🏢 年租金 <span class="hint">（万元）</span></label>
+          <input type="number" id="annualRent" value="854" min="0" step="1" onchange="recalculate()">
+        </div>
+        <div class="input-group">
+          <label>📊 周边参考卖价 <span class="hint">（元/间/晚）</span></label>
+          <input type="number" id="referencePrice" value="535" min="100" step="1" placeholder="参考周边酒店">
+        </div>
+        <div class="input-group">
+          <label>📈 参考入住率 <span class="hint">（%）</span></label>
+          <input type="number" id="referenceOccupancy" value="93" min="30" max="100" step="0.5" placeholder="参考周边酒店">
+        </div>
+        <div class="input-group slider-group">
+          <label>🎯 目标回本年限</label>
+          <input type="range" id="targetYears" min="3" max="20" value="8" step="0.5" oninput="updateSlider(); recalculate()">
+          <div class="slider-labels">
+            <span>3年</span><span>8年</span><span>12年</span><span>15年</span><span>20年</span>
+          </div>
+          <div class="slider-value" id="sliderValue">8.0 年</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2: Big Result -->
+  <div class="section" id="sec-result" style="border-color: rgba(16,185,129,0.4);">
+    <div class="section-title" onclick="toggleSection('sec-result')">
+      <span class="icon icon-result">🎯</span> 投资回本测算结果
+      <span class="collapse-arrow">▼</span>
+    </div>
+    <div class="section-content">
+      <div class="result-hero">
+        <div class="big-number" id="paybackYearsDisplay">8.0</div>
+        <div class="big-label">预计投资回本年限</div>
+        <div class="big-sub">
+          总投资 <strong id="investDisplay">3,007</strong> 万元 · 
+          共 <strong id="roomDisplay">102</strong> 间客房 · 
+          年租金 <strong id="rentDisplay">854</strong> 万元
+        </div>
+        <div class="target-badge" id="targetBadge">🎯 目标回本: 8.0年</div>
+      </div>
+
+      <div class="metrics-row">
+        <div class="metric-card metric-adr">
+          <div class="metric-value" id="requiredAdr">¥--</div>
+          <div class="metric-label">🏷️ 达成目标所需平均卖价</div>
+          <div class="metric-ref" id="refPrice">参考周边: ¥535</div>
+        </div>
+        <div class="metric-card metric-occ">
+          <div class="metric-value" id="requiredOcc">--%</div>
+          <div class="metric-label">📊 所需维持入住率</div>
+          <div class="metric-ref" id="refOcc">参考周边: 93%</div>
+        </div>
+        <div class="metric-card metric-rev">
+          <div class="metric-value" id="annualRevenue">¥--万</div>
+          <div class="metric-label">💵 年度目标营收总额</div>
+          <div class="metric-ref">含客房+非客房收入</div>
+        </div>
+        <div class="metric-card metric-cost">
+          <div class="metric-value" id="annualCost">¥--万</div>
+          <div class="metric-label">📉 年运营总成本</div>
+          <div class="metric-ref">不含租金与折旧</div>
+        </div>
+        <div class="metric-card metric-gop">
+          <div class="metric-value" id="annualGop">¥--万</div>
+          <div class="metric-label">📈 年经营毛利 (GOP)</div>
+          <div class="metric-ref">含折旧后年现金流</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3: Cost Breakdown -->
+  <div class="section" id="sec-cost">
+    <div class="section-title" onclick="toggleSection('sec-cost')">
+      <span class="icon icon-cost">📊</span> 运营成本结构分析
+      <span class="collapse-arrow">▼</span>
+    </div>
+    <div class="section-content">
+      <div class="ota-warning">
+        <span class="warn-icon">⚠️</span>
+        <span><strong>OTA平台佣金</strong> 按行业标准<strong>固定占总收入 15%</strong> 计算（含携程、美团、飞猪等平台综合佣金率），这是酒店运营中不可忽视的最大单项渠道成本。</span>
+      </div>
+      <table class="cost-table">
+        <thead>
+          <tr><th>成本项目</th><th>占总收入比</th><th></th><th>年金额（万元）</th></tr>
+        </thead>
+        <tbody id="costTableBody">
+        </tbody>
+      </table>
+      <div style="margin-top:16px; font-size:0.8rem; color:var(--text-muted); text-align:center;">
+        💡 成本率参考北京亚运村鸟巢漫心酒店实际测算模型校验
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 4: Monthly GMV -->
+  <div class="section" id="sec-monthly">
+    <div class="section-title" onclick="toggleSection('sec-monthly')">
+      <span class="icon icon-month">📅</span> 月度GMV分解（含淡旺季+社会考试因素）
+      <span class="collapse-arrow">▼</span>
+    </div>
+    <div class="section-content">
+      <div class="monthly-grid" id="monthlyChart"></div>
+      <div class="season-legend">
+        <div class="season-dot"><span style="background:var(--accent-red)"></span> 旺季 (五一/国庆/寒暑假)</div>
+        <div class="season-dot"><span style="background:var(--accent-blue)"></span> 平季</div>
+        <div class="season-dot"><span style="background:var(--accent-purple)"></span> 淡季</div>
+        <div class="season-dot"><span style="background:var(--accent-cyan)"></span> 考试/会议特殊时段</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 5: Customer Mix -->
+  <div class="section" id="sec-mix">
+    <div class="section-title" onclick="toggleSection('sec-mix')">
+      <span class="icon icon-mix">👥</span> 客流占比分析（基于实际市场模拟）
+      <span class="collapse-arrow">▼</span>
+    </div>
+    <div class="section-content">
+      <div class="mix-container">
+        <div class="mix-pie">
+          <canvas id="mixChart" width="260" height="260"></canvas>
+        </div>
+        <div class="mix-details" id="mixDetails">
+        </div>
+      </div>
+      <div style="margin-top:20px; font-size:0.8rem; color:var(--text-muted);">
+        💡 中高端商务/旅游酒店参考数据：OTA 35-50% | 大客户/协议 20-35% | 散客/Walk-in 15-25% | 自营会员/直销 5-10%
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 6: Action Guide -->
+  <div class="section" id="sec-guide">
+    <div class="section-title" onclick="toggleSection('sec-guide')">
+      <span class="icon icon-result">💡</span> 怎么干？—— 达成目标的关键路径
+      <span class="collapse-arrow">▼</span>
+    </div>
+    <div class="section-content">
+      <div class="flow-cards" id="flowCards">
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    📐 数据模型基于<strong>北京亚运村鸟巢漫心酒店</strong>实际测算校验 · 运营参数可调整 · 仅供参考
+  </div>
+</div>
+
+<script>
+// ========== DATA MODEL ==========
+const MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+// Seasonal factors (based on Beijing hotel market)
+const SEASONAL_FACTORS = [
+  0.65,  // Jan: 淡季
+  0.70,  // Feb: 春节
+  0.85,  // Mar: 两会+回暖
+  0.95,  // Apr: 平季
+  1.10,  // May: 五一黄金周
+  1.00,  // Jun: 平季
+  1.15,  // Jul: 暑假开始
+  1.20,  // Aug: 暑假高峰
+  0.95,  // Sep: 开学
+  1.10,  // Oct: 国庆黄金周
+  0.85,  // Nov: 淡季
+  0.80,  // Dec: 年末淡季
+];
+
+const SEASON_TAGS = [
+  '淡季·元旦前','春节假期','两会·考研复试','清明·平季',
+  '五一黄金周·旺季','高考·毕业季','暑假·旅游旺季','暑假高峰·旺季',
+  '开学·考研报名','国庆黄金周','双11·淡季','年末·圣诞元旦'
+];
+
+const SEASON_COLORS = [
+  'var(--accent-purple)','var(--accent-purple)','var(--accent-blue)','var(--accent-blue)',
+  'var(--accent-red)','var(--accent-cyan)','var(--accent-red)','var(--accent-red)',
+  'var(--accent-blue)','var(--accent-red)','var(--accent-purple)','var(--accent-purple)'
+];
+
+// Cost structure (based on Excel model, % of revenue)
+const COST_ITEMS = [
+  { name: 'OTA平台佣金', key: 'otaComm', pct: 0.15, color: '#ef4444', note: '含携程15%+美团12%+飞猪10%综合' },
+  { name: '营业税及附加', key: 'tax', pct: 0.0566, color: '#f59e0b', note: '增值税+城建+教育费附加' },
+  { name: '客房消耗品', key: 'roomSupplies', pct: 0.042, color: '#8b5cf6', note: '布草洗涤、一次性用品、客用品' },
+  { name: '人工成本', key: 'labor', pct: 0.134, color: '#ec4899', note: '含管理+基层员工工资福利' },
+  { name: '能源费用', key: 'energy', pct: 0.04, color: '#06b6d4', note: '水电气+空调供暖' },
+  { name: '市场营销费用', key: 'marketing', pct: 0.05, color: '#10b981', note: '推广、协议客户维护、品牌宣传' },
+  { name: '管理费用及其他', key: 'admin', pct: 0.05, color: '#6366f1', note: '办公、维修、保险、杂项' },
+];
+
+// Customer mix (based on midscale hotel market in China)
+const CUSTOMER_MIX = [
+  { name: 'OTA平台', pct: 0.45, color: '#ef4444', desc: '携程/美团/飞猪/去哪儿等平台预订' },
+  { name: '大客户/协议公司', pct: 0.25, color: '#3b82f6', desc: '企业协议价、旅行社团客、长包房' },
+  { name: '散客/Walk-in', pct: 0.20, color: '#10b981', desc: '门市散客、电话预订、临时入住' },
+  { name: '自营会员/直销', pct: 0.10, color: '#8b5cf6', desc: '酒店自有小程序、会员体系、企业直连' },
+];
+
+// ========== CALCULATION LOGIC ==========
+function calculate() {
+  const investment = parseFloat(document.getElementById('totalInvestment').value) || 3007;
+  const rooms = parseInt(document.getElementById('roomCount').value) || 102;
+  const rent = parseFloat(document.getElementById('annualRent').value) || 854;
+  const refPrice = parseFloat(document.getElementById('referencePrice').value) || 535;
+  const refOcc = parseFloat(document.getElementById('referenceOccupancy').value) || 93;
+  const targetYears = parseFloat(document.getElementById('targetYears').value) || 8;
+
+  const DEPRECIATION_YEARS = 30;
+  const OPERATING_DAYS = 365;
+  
+  // Total operating cost ratio (sum of all cost items)
+  const totalCostRatio = COST_ITEMS.reduce((sum, item) => sum + item.pct, 0);
+  const gopRatio = 1 - totalCostRatio;
+
+  // Annual depreciation
+  const annualDepreciation = investment / DEPRECIATION_YEARS;
+
+  // Required annual cash flow for target payback
+  // Cash Flow = (Revenue * gopRatio) - rent + depreciation
+  // investment / targetYears = Revenue * gopRatio - rent + depreciation
+  // Revenue = (investment/targetYears + rent - depreciation) / gopRatio
+  const requiredCashFlow = investment / targetYears;
+  const requiredRevenue = (requiredCashFlow + rent - annualDepreciation) / gopRatio;
+  
+  // If revenue is negative or too low, it means the target is unrealistic
+  const minRevenue = rent / gopRatio * 1.1; // minimum to barely cover rent
+  const effectiveRevenue = Math.max(requiredRevenue, minRevenue * 0.5);
+
+  // Required ADR at reference occupancy
+  const occRate = refOcc / 100;
+  const requiredAdr = effectiveRevenue * 10000 / (rooms * OPERATING_DAYS * occRate);
+
+  // Actual annual figures
+  const annualRev = requiredAdr * rooms * OPERATING_DAYS * occRate / 10000;
+  const annualGop = annualRev * gopRatio;
+  const annualCost = annualRev * totalCostRatio;
+  const actualCashFlow = annualGop - rent + annualDepreciation;
+  const actualPayback = actualCashFlow > 0 ? investment / actualCashFlow : 999;
+
+  return {
+    investment, rooms, rent, refPrice, refOcc, targetYears,
+    requiredAdr, annualRev, annualGop, annualCost,
+    actualPayback, actualCashFlow, annualDepreciation,
+    totalCostRatio, gopRatio,
+    effectiveRevenue,
+  };
+}
+
+// ========== RENDER FUNCTIONS ==========
+function recalculate() {
+  const d = calculate();
+
+  // Payback display
+  const paybackNum = d.actualPayback >= 999 ? '>50' : d.actualPayback.toFixed(1);
+  document.getElementById('paybackYearsDisplay').textContent = paybackNum;
+  document.getElementById('investDisplay').textContent = d.investment.toLocaleString('zh-CN');
+  document.getElementById('roomDisplay').textContent = d.rooms;
+  document.getElementById('rentDisplay').textContent = d.rent.toLocaleString('zh-CN');
+  document.getElementById('targetBadge').textContent = `🎯 目标回本: ${d.targetYears}年`;
+
+  // Metrics
+  document.getElementById('requiredAdr').textContent = '¥' + Math.round(d.requiredAdr).toLocaleString('zh-CN');
+  document.getElementById('requiredOcc').textContent = d.refOcc + '%';
+  document.getElementById('annualRevenue').textContent = '¥' + Math.round(d.annualRev).toLocaleString('zh-CN') + '万';
+  document.getElementById('annualCost').textContent = '¥' + Math.round(d.annualCost).toLocaleString('zh-CN') + '万';
+  document.getElementById('annualGop').textContent = '¥' + Math.round(d.annualGop).toLocaleString('zh-CN') + '万';
+  document.getElementById('refPrice').textContent = `参考周边: ¥${d.refPrice}`;
+  document.getElementById('refOcc').textContent = `参考周边: ${d.refOcc}%`;
+
+  // Badge color based on feasibility
+  const badge = document.getElementById('targetBadge');
+  if (d.requiredAdr <= d.refPrice * 1.3 && d.requiredAdr >= d.refPrice * 0.7) {
+    badge.style.background = 'rgba(16,185,129,0.15)';
+    badge.style.color = 'var(--accent-green)';
+    badge.style.borderColor = 'rgba(16,185,129,0.3)';
+    badge.textContent = `✅ 目标 ${d.targetYears} 年回本可行`;
+  } else if (d.requiredAdr <= d.refPrice * 2) {
+    badge.style.background = 'rgba(245,158,11,0.15)';
+    badge.style.color = 'var(--accent-orange)';
+    badge.style.borderColor = 'rgba(245,158,11,0.3)';
+    badge.textContent = `⚠️ 目标 ${d.targetYears} 年回本有挑战，需卖 ¥${Math.round(d.requiredAdr)}`;
+  } else {
+    badge.style.background = 'rgba(239,68,68,0.15)';
+    badge.style.color = 'var(--accent-red)';
+    badge.style.borderColor = 'rgba(239,68,68,0.3)';
+    badge.textContent = `❌ 目标 ${d.targetYears} 年回本极难，建议调整预期`;
+  }
+
+  // Cost breakdown
+  renderCostTable(d);
+  // Monthly chart
+  renderMonthlyChart(d);
+  // Customer mix
+  renderCustomerMix();
+  // Flow guide
+  renderFlowGuide(d);
+}
+
+function renderCostTable(d) {
+  let html = '';
+  COST_ITEMS.forEach(item => {
+    const annual = d.annualRev * item.pct;
+    const isOta = item.key === 'otaComm';
+    html += `<tr class="${isOta ? 'highlight-ota' : ''}">
+      <td>${isOta ? '⚠️ ' : ''}${item.name}</td>
+      <td>${(item.pct * 100).toFixed(1)}%</td>
+      <td>
+        <span class="percentage-bar-bg"><span class="percentage-bar-fill" style="width:${item.pct * 100 * 1.2}px;background:${item.color}"></span></span>
+      </td>
+      <td>¥${Math.round(annual).toLocaleString('zh-CN')}万</td>
+    </tr>`;
+  });
+  // Total row
+  html += `<tr class="total-row">
+    <td>运营成本合计</td>
+    <td>${(d.totalCostRatio * 100).toFixed(1)}%</td>
+    <td></td>
+    <td>¥${Math.round(d.annualCost).toLocaleString('zh-CN')}万</td>
+  </tr>`;
+  // GOP row  
+  html += `<tr class="gop-row">
+    <td>经营毛利 (GOP)</td>
+    <td>${(d.gopRatio * 100).toFixed(1)}%</td>
+    <td></td>
+    <td>¥${Math.round(d.annualGop).toLocaleString('zh-CN')}万</td>
+  </tr>`;
+  // Rent & depreciation
+  html += `<tr>
+    <td>+ 年租金</td>
+    <td>${(d.rent / d.annualRev * 100).toFixed(1)}%</td>
+    <td></td>
+    <td>¥${Math.round(d.rent).toLocaleString('zh-CN')}万</td>
+  </tr>`;
+  html += `<tr>
+    <td>+ 年折旧 (${30}年直线法)</td>
+    <td>${(d.annualDepreciation / d.annualRev * 100).toFixed(1)}%</td>
+    <td></td>
+    <td>¥${Math.round(d.annualDepreciation).toLocaleString('zh-CN')}万</td>
+  </tr>`;
+  // Final: annual cash flow
+  const cashFlowColor = d.actualCashFlow >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+  html += `<tr>
+    <td style="font-weight:700;color:${cashFlowColor}">💰 年度净现金流</td>
+    <td style="font-weight:700;color:${cashFlowColor}">${(d.actualCashFlow / d.annualRev * 100).toFixed(1)}%</td>
+    <td></td>
+    <td style="font-weight:700;color:${cashFlowColor}">¥${Math.round(d.actualCashFlow).toLocaleString('zh-CN')}万</td>
+  </tr>`;
+  
+  document.getElementById('costTableBody').innerHTML = html;
+}
+
+function renderMonthlyChart(d) {
+  const avgMonthly = d.annualRev / 12;
+  let html = '';
+  
+  MONTHS.forEach((month, i) => {
+    const monthlyRev = avgMonthly * SEASONAL_FACTORS[i];
+    const height = Math.max(4, (SEASONAL_FACTORS[i] / 1.3) * 180);
+    
+    html += `<div class="month-bar-wrap">
+      <div class="month-bar" style="height:${height}px;background:${SEASON_COLORS[i]};" title="${SEASON_TAGS[i]}: ¥${Math.round(monthlyRev).toLocaleString('zh-CN')}万">
+        <span class="bar-value">¥${Math.round(monthlyRev)}万</span>
+      </div>
+      <div class="month-label">${month}</div>
+      <div class="month-tag">${SEASON_TAGS[i]}</div>
+    </div>`;
+  });
+  
+  document.getElementById('monthlyChart').innerHTML = html;
+}
+
+function renderCustomerMix() {
+  // Pie chart
+  const canvas = document.getElementById('mixChart');
+  const ctx = canvas.getContext('2d');
+  const cx = 130, cy = 130, r = 110;
+  
+  ctx.clearRect(0, 0, 260, 260);
+  
+  let startAngle = -Math.PI / 2;
+  CUSTOMER_MIX.forEach(item => {
+    const sliceAngle = item.pct * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, startAngle, startAngle + sliceAngle);
+    ctx.closePath();
+    ctx.fillStyle = item.color;
+    ctx.fill();
+    
+    // Label
+    const midAngle = startAngle + sliceAngle / 2;
+    const labelR = r * 0.65;
+    const lx = cx + Math.cos(midAngle) * labelR;
+    const ly = cy + Math.sin(midAngle) * labelR;
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText((item.pct * 100) + '%', lx, ly);
+    
+    startAngle += sliceAngle;
+  });
+  
+  // Center circle (donut effect)
+  ctx.beginPath();
+  ctx.arc(cx, cy, 55, 0, Math.PI * 2);
+  ctx.fillStyle = '#111827';
+  ctx.fill();
+  ctx.fillStyle = '#e2e8f0';
+  ctx.font = 'bold 14px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('客流', cx, cy - 6);
+  ctx.fillText('占比', cx, cy + 14);
+
+  // Details
+  let detailHtml = '';
+  CUSTOMER_MIX.forEach(item => {
+    detailHtml += `<div class="mix-item">
+      <span class="mix-dot" style="background:${item.color}"></span>
+      <div class="mix-info">
+        <div class="mix-name">${item.name}</div>
+        <div class="mix-desc">${item.desc}</div>
+      </div>
+      <span class="mix-pct" style="color:${item.color}">${(item.pct * 100).toFixed(0)}%</span>
+    </div>`;
+  });
+  document.getElementById('mixDetails').innerHTML = detailHtml;
+}
+
+function renderFlowGuide(d) {
+  const priceGap = d.requiredAdr - d.refPrice;
+  const adrAdvice = priceGap > 0 
+    ? `需在参考价基础上<strong style="color:var(--accent-orange)">提价 ¥${Math.round(priceGap)}</strong>，建议通过提升服务品质、优化房型结构或增加增值服务实现。`
+    : `当前参考价已能满足回本需求，<strong style="color:var(--accent-green)">有 ¥${Math.round(-priceGap)} 余量空间</strong>。`;
+
+  const monthlyRent = d.rent / 12;
+  const monthlyBreakEven = (d.annualCost + d.rent) / 12;
+
+  const cards = [
+    {
+      num: '01', title: '🏷️ 定价策略',
+      desc: `周边酒店均价 ¥${d.refPrice}，若要 ${d.targetYears} 年回本，日均房价需达 <strong style="color:var(--accent-blue)">¥${Math.round(d.requiredAdr)}</strong>。${adrAdvice}`
+    },
+    {
+      num: '02', title: '📊 入住率底线',
+      desc: `维持 <strong>${d.refOcc}%</strong> 入住率是基础。淡季（1-2月、11-12月）需通过大客户长包房或线上促销保底；旺季（5/7/8/10月）全力冲击满房。每月至少需完成 <strong style="color:var(--accent-green)">¥${Math.round(d.annualRev / 12)}万</strong> GMV。`
+    },
+    {
+      num: '03', title: '💰 成本管控',
+      desc: `运营成本占总收入 <strong>${(d.totalCostRatio * 100).toFixed(0)}%</strong>，其中 OTA佣金（15%）是最大单项支出。降低 OTA 依赖度、提升直销占比可直接改善利润。月固定支出（租金+人工）约 <strong>¥${Math.round(monthlyRent + d.annualRev * 0.134 / 12)}万</strong>，不可压缩。`
+    },
+    {
+      num: '04', title: '👥 渠道优化',
+      desc: `当前 OTA 占客流 <strong>45%</strong>，佣金吃掉 <strong>15%</strong> 收入。目标将 OTA 占比降至 <strong>35%</strong> 以下，同时将自营会员+大客户占比提升至 <strong>40%</strong> 以上。每降低 OTA 佣金 1 个百分点，年利润增加约 <strong>¥${Math.round(d.annualRev * 0.01)}万</strong>。`
+    },
+    {
+      num: '05', title: '📅 月度作战图',
+      desc: `旺季月份（5月/7月/8月/10月）单月需冲刺 <strong>¥${Math.round(d.annualRev / 12 * 1.15)}万+</strong>；考试季（6月/12月考研）承接考生入住；淡季重点维护大客户协议价入住率。全年 GMV 目标 <strong>¥${Math.round(d.annualRev)}万</strong>，日均 <strong>¥${Math.round(d.annualRev / 365 * 10000)}元</strong>。`
+    },
+    {
+      num: '06', title: '🏗️ 投资结构',
+      desc: `单间投资 <strong>¥${Math.round(d.investment / d.rooms * 10000)}元</strong>，${d.targetYears} 年回本意味着单间年产出现金流需达 <strong>¥${Math.round(d.requiredCashFlow / d.rooms * 10000)}元</strong>。如果投资能压缩至 <strong>¥${Math.round(d.rooms * 250000 / 10000)}万元</strong>（25万/间以下），回本将显著加快。`
+    },
+  ];
+
+  document.getElementById('flowCards').innerHTML = cards.map(c => `
+    <div class="flow-card">
+      <div class="flow-num">${c.num}</div>
+      <div class="flow-title">${c.title}</div>
+      <div class="flow-desc">${c.desc}</div>
+    </div>
+  `).join('');
+}
+
+function updateSlider() {
+  const val = parseFloat(document.getElementById('targetYears').value);
+  document.getElementById('sliderValue').textContent = val.toFixed(1) + ' 年';
+}
+
+function toggleSection(id) {
+  document.getElementById(id).classList.toggle('collapsed');
+}
+
+// Init
+updateSlider();
+recalculate();
+</script>
+</body>
+</html>
