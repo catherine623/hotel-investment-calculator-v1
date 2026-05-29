@@ -298,16 +298,18 @@ body {
   align-items: center;
   gap: 4px;
 }
-.month-bar {
+.month-stack {
   width: 100%;
+  display: flex;
+  flex-direction: column-reverse;
   border-radius: 4px 4px 0 0;
-  transition: height 0.3s;
+  overflow: hidden;
   min-height: 4px;
 }
-.month-bar.peak { background: #e57373; }
-.month-bar.shoulder { background: #64b5f6; }
-.month-bar.low { background: #ba68c8; }
-.month-bar.special { background: #4db6ac; }
+.month-stack-segment {
+  width: 100%;
+  transition: height 0.3s;
+}
 .month-label { font-size: 10px; color: var(--text-muted); text-align: center; }
 .month-val { font-size: 9px; color: var(--text-muted); text-align: center; }
 
@@ -556,20 +558,6 @@ body {
       <input type="number" id="referenceOccupancy" placeholder="例如：70" min="30" max="100" step="0.1" value="72">
       <div class="unit">周边同类酒店年均入住率，参考STR报告或本地调研</div>
     </div>
-    <div class="form-item">
-      <label>目标回本年限</label>
-      <select id="targetYears">
-        <option value="">请选择目标年限</option>
-        <option value="3">3 年</option>
-        <option value="5">5 年</option>
-        <option value="8" selected>8 年</option>
-        <option value="10">10 年</option>
-        <option value="12">12 年</option>
-        <option value="15">15 年</option>
-        <option value="20">20 年</option>
-      </select>
-      <div class="unit">投资回收期的期望目标</div>
-    </div>
   </div>
   <button class="gen-btn" onclick="generateReport()">生成投资测算报告</button>
   <div id="input-error" style="display:none; color:var(--red); font-size:12px; margin-top:10px; text-align:center;"></div>
@@ -582,7 +570,6 @@ body {
   <div class="hero-card" id="heroCard">
     <div class="hero-label">预 计 投 资 回 本 年 限</div>
     <div class="hero-value" id="heroPayback">--</div>
-    <div class="hero-unit">年</div>
     <div class="hero-verdict" id="heroVerdict"></div>
     <div class="hero-sub" id="heroSub"></div>
     <div class="hero-summary" id="heroSummary"></div>
@@ -616,14 +603,14 @@ body {
   <div class="card">
     <div class="card-header" style="cursor:default;">
       <span class="icon">📅</span> 月度 GMV 分解
-      <span style="font-weight:400;font-size:12px;color:var(--text-muted);margin-left:4px;">（基于典型酒店季节性波动）</span>
+      <span style="font-weight:400;font-size:12px;color:var(--text-muted);margin-left:4px;">（堆积图：每月渠道占比 + 季节性波动）</span>
     </div>
     <div class="monthly-grid" id="monthlyGrid"></div>
     <div class="season-legend">
-      <span><span class="dot" style="background:#e57373;"></span> 旺季（五一/国庆/暑假）</span>
-      <span><span class="dot" style="background:#64b5f6;"></span> 平季</span>
-      <span><span class="dot" style="background:#ba68c8;"></span> 淡季</span>
-      <span><span class="dot" style="background:#4db6ac;"></span> 考试/会议特殊时段</span>
+      <span><span class="dot" style="background:#e74c3c;"></span> OTA平台</span>
+      <span><span class="dot" style="background:#3498db;"></span> 大客户/协议</span>
+      <span><span class="dot" style="background:#2ecc71;"></span> 散客</span>
+      <span><span class="dot" style="background:#9b59b6;"></span> 自营/直销</span>
     </div>
   </div>
 
@@ -680,6 +667,7 @@ const TIER_PARAMS = {
     labor: 0.155, energy: 0.055, supplies: 0.045, marketingOther: 0.025, admin: 0.048, franchise: 0.030,
     otaPct: 0.42, corpPct: 0.25, walkinPct: 0.18, directPct: 0.15,
     revparDesc: '280–450 元', paybackDesc: '6–10 年', investPerRoomDesc: '20–30 万/间',
+    paybackGood: 8, paybackFeasible: 10,
     desc: '一线城市竞争激烈，人工成本占收入 15-16% 为各类最高。OTA依赖度 40-45%，品牌加盟管理费约 3%。RevPAR 全国最高但租金与人工双重挤压，GOP率通常 42-50%。'
   },
   2: { // 新一线城市（杭州/成都/武汉/南京等）
@@ -687,6 +675,7 @@ const TIER_PARAMS = {
     labor: 0.135, energy: 0.050, supplies: 0.042, marketingOther: 0.025, admin: 0.045, franchise: 0.030,
     otaPct: 0.40, corpPct: 0.28, walkinPct: 0.18, directPct: 0.14,
     revparDesc: '200–350 元', paybackDesc: '5–8 年', investPerRoomDesc: '16–24 万/间',
+    paybackGood: 6, paybackFeasible: 8,
     desc: '新一线城市处于快速发展期，商务+旅游双轮驱动。人工成本约 13-14%，运营性价比为各等级最优，当前中档酒店投资最热门区域。行业GOP率参考 47-55%。'
   },
   3: { // 二线城市（长沙/合肥/昆明/厦门/常州/青岛等）
@@ -694,6 +683,7 @@ const TIER_PARAMS = {
     labor: 0.125, energy: 0.048, supplies: 0.040, marketingOther: 0.022, admin: 0.043, franchise: 0.030,
     otaPct: 0.37, corpPct: 0.30, walkinPct: 0.23, directPct: 0.10,
     revparDesc: '150–280 元', paybackDesc: '4–7 年', investPerRoomDesc: '13–21 万/间',
+    paybackGood: 5, paybackFeasible: 7,
     desc: '二线城市运营成本较低，协议客户与散客占比合计超 50%。不同项目因选址和租金水平差异化显著，GOP率差距可达5-10个百分点，租金谈判为关键成功因素。'
   },
   4: { // 三线及以下
@@ -701,6 +691,7 @@ const TIER_PARAMS = {
     labor: 0.105, energy: 0.042, supplies: 0.038, marketingOther: 0.018, admin: 0.040, franchise: 0.030,
     otaPct: 0.32, corpPct: 0.28, walkinPct: 0.30, directPct: 0.10,
     revparDesc: '100–200 元', paybackDesc: '4–8 年', investPerRoomDesc: '8–15 万/间',
+    paybackGood: 5, paybackFeasible: 8,
     desc: '投资最小但需求波动较大，OTA依赖度最低（约 32%），散客占比最高。需重点关注本地人口流动和大型项目落地情况。'
   }
 };
@@ -762,7 +753,6 @@ function generateReport() {
   const rent = parseFloat(document.getElementById('annualRent').value);
   const refPrice = parseFloat(document.getElementById('referencePrice').value);
   const refOcc = parseFloat(document.getElementById('referenceOccupancy').value);
-  const targetYears = parseFloat(document.getElementById('targetYears').value);
 
   const errors = [];
   if (!tier) errors.push('请选择城市等级');
@@ -771,7 +761,6 @@ function generateReport() {
   if (isNaN(rent) || rent < 0) errors.push('请输入有效的年租金（≥ 0）');
   if (!refPrice || refPrice < 50) errors.push('周边参考卖价需 ≥ 50 元');
   if (!refOcc || refOcc < 30 || refOcc > 100) errors.push('参考入住率需在 30-100% 之间');
-  if (!targetYears) errors.push('请选择目标回本年限');
 
   if (errors.length > 0) {
     errEl.textContent = errors.join('；');
@@ -794,11 +783,10 @@ function generateReport() {
   const totalCostRatio = costItems.reduce((s, c) => s + c.pct, 0);
   const gopRatio = 1 - totalCostRatio;
   const annualDepreciation = investment / DEPRECIATION_YEARS;
-  const requiredCashFlow = investment / targetYears;
-  const requiredRevenue = (requiredCashFlow + rent - annualDepreciation) / gopRatio;
-  const effectiveRevenue = Math.max(requiredRevenue, (rent / gopRatio) * 0.5);
-  const requiredAdr = (effectiveRevenue * 10000) / (rooms * 365 * (refOcc / 100));
-  const annualRev = requiredAdr * rooms * 365 * (refOcc / 100) / 10000;
+
+  // 基于市场条件直接计算：以周边参考卖价和入住率为运营假设
+  const adr = refPrice;
+  const annualRev = adr * rooms * 365 * (refOcc / 100) / 10000;
   const annualGop = annualRev * gopRatio;
   const annualCost = annualRev * totalCostRatio;
   const actualCashFlow = annualGop - rent + annualDepreciation;
@@ -812,26 +800,26 @@ function generateReport() {
   const heroCard = document.getElementById('heroCard');
 
   if (actualPayback === Infinity) {
-    heroPayback.textContent = '>50';
+    heroPayback.innerHTML = '>50<span class="hero-unit">年</span>';
     heroPayback.className = 'hero-value impossible';
     heroVerdict.textContent = '⚠ 难以实现';
     heroVerdict.className = 'hero-verdict difficult';
     heroSub.textContent = '在当前参数下，年度现金流为负，难以在合理周期内收回投资。建议重新评估投资规模、租金水平或目标市场。';
   } else {
-    heroPayback.textContent = actualPayback <= 50 ? actualPayback.toFixed(1) : '>50';
+    heroPayback.innerHTML = actualPayback.toFixed(1) + '<span class="hero-unit">年</span>';
     heroPayback.className = 'hero-value';
-    if (actualPayback <= targetYears * 1.1) {
+    if (actualPayback <= tp.paybackGood) {
       heroVerdict.textContent = '✅ 投资可行';
       heroVerdict.className = 'hero-verdict feasible';
-      heroSub.textContent = '在当前市场条件下具有可行性，所需卖价和入住率在合理范围内，建议进一步细化运营方案。';
-    } else if (actualPayback <= targetYears * 1.5) {
+      heroSub.textContent = `该城市等级优质回本区间为 ${tp.paybackDesc}，当前测算 ${actualPayback.toFixed(1)} 年处于优秀水平，项目可投性良好。`;
+    } else if (actualPayback <= tp.paybackFeasible) {
       heroVerdict.textContent = '🔶 有一定挑战';
       heroVerdict.className = 'hero-verdict challenging';
-      heroSub.textContent = `需要在${targetYears}年内回本有一定难度，建议优化定价策略、控制运营成本或适当调整回本预期。`;
+      heroSub.textContent = `该城市等级参考回本周期为 ${tp.paybackDesc}，当前测算 ${actualPayback.toFixed(1)} 年处于合理范围。建议优化定价策略或控制运营成本以缩短回本周期。`;
     } else {
       heroVerdict.textContent = '🔴 回本压力较大';
       heroVerdict.className = 'hero-verdict difficult';
-      heroSub.textContent = `在${targetYears}年内回本面临较大挑战。当前投资规模与市场卖价/入住率水平不匹配，建议重新评估投资规模或选址。`;
+      heroSub.textContent = `该城市等级参考回本周期为 ${tp.paybackDesc}，当前测算 ${actualPayback.toFixed(1)} 年超出行业参考范围。建议重新评估投资规模、租金水平或选址。`;
     }
   }
 
@@ -857,12 +845,12 @@ function generateReport() {
   const occPct = refOcc.toFixed(1);
   document.getElementById('metricRow').innerHTML = `
     <div class="metric-card">
-      <div class="mlabel">达成目标所需平均卖价</div>
-      <div class="mval">¥${Math.round(requiredAdr)}</div>
-      <div class="msub">参考周边卖价 ¥${Math.round(refPrice)}</div>
+      <div class="mlabel">达成测算所需卖价</div>
+      <div class="mval">¥${Math.round(adr)}</div>
+      <div class="msub">基于周边参考市场价</div>
     </div>
     <div class="metric-card">
-      <div class="mlabel">所需维持入住率</div>
+      <div class="mlabel">参考入住率</div>
       <div class="mval">${occPct}%</div>
       <div class="msub">年可售房 ${(rooms * 365).toLocaleString()} 间夜</div>
     </div>
@@ -927,15 +915,29 @@ function generateReport() {
   </tr>`;
   document.getElementById('costTableBody').innerHTML = costHtml;
 
-  // ---- 月度GMV ----
+  // ---- 月度GMV堆积图 ----
   let monthlyHtml = '';
   const maxFactor = Math.max(...SEASONAL_FACTORS);
   const monthAvg = annualRev / 12;
+  const chColors = { ota: '#e74c3c', corp: '#3498db', walkin: '#2ecc71', direct: '#9b59b6' };
+  const chLabels = { ota: 'OTA', corp: '大客户', walkin: '散客', direct: '自营' };
+
   for (let i = 0; i < 12; i++) {
     const mthRev = monthAvg * SEASONAL_FACTORS[i];
-    const heightPct = (SEASONAL_FACTORS[i] / maxFactor) * 100;
+    const totalHeightPct = (SEASONAL_FACTORS[i] / maxFactor) * 100;
+    const segs = [
+      { key: 'ota', pct: tp.otaPct },
+      { key: 'corp', pct: tp.corpPct },
+      { key: 'walkin', pct: tp.walkinPct },
+      { key: 'direct', pct: tp.directPct }
+    ];
+    let segHtml = '';
+    segs.forEach(s => {
+      const segRev = (mthRev * s.pct).toFixed(0);
+      segHtml += `<div class="month-stack-segment" style="height:${(s.pct*100).toFixed(0)}%;background:${chColors[s.key]};" title="${chLabels[s.key]}: ¥${segRev}万"></div>`;
+    });
     monthlyHtml += `<div class="month-col">
-      <div class="month-bar ${SEASON_CLASS[i]}" style="height:${heightPct}%;" title="${SEASON_TAGS[i]}: ¥${Math.round(mthRev)}万"></div>
+      <div class="month-stack" style="height:${totalHeightPct.toFixed(0)}%;">${segHtml}</div>
       <div class="month-val">¥${Math.round(mthRev)}</div>
       <div class="month-label">${SEASON_LABELS[i]}</div>
     </div>`;
@@ -1053,19 +1055,19 @@ function generateReport() {
   const dailyGMV = (annualRev * 10000) / 365;
   const investPerRoom = (investment * 10000) / rooms;
   const cashPerRoom = actualCashFlow > 0 ? (actualCashFlow * 10000) / rooms : 0;
-  const minOccForBreakeven = annualRev > 0 ? ((rent / gopRatio) / (requiredAdr * rooms * 365 / 10000) * 100) : 0;
+  const minOccForBreakeven = annualRev > 0 ? ((rent / gopRatio) / (adr * rooms * 365 / 10000) * 100) : 0;
 
   document.getElementById('guideGrid').innerHTML = `
     <div class="guide-card">
       <div class="g-icon">📌</div>
       <div class="g-title">定价策略</div>
       <div class="g-text">
-        达成目标需平均卖价 <strong>¥${Math.round(requiredAdr)}/间/晚</strong>（周边参考 ¥${Math.round(refPrice)}）。<br>
-        ${requiredAdr > refPrice * 1.15
-          ? '<span style="color:var(--red);">⚠ 需提价 ' + ((requiredAdr/refPrice-1)*100).toFixed(0) + '%，在' + tp.label + '中竞争压力较大。</span>'
-          : requiredAdr >= refPrice * 0.85
+        达成目标需平均卖价 <strong>¥${Math.round(adr)}/间/晚</strong>（周边参考 ¥${Math.round(refPrice)}）。<br>
+        ${adr > refPrice * 1.15
+          ? '<span style="color:var(--red);">⚠ 需提价 ' + ((adr/refPrice-1)*100).toFixed(0) + '%，在' + tp.label + '中竞争压力较大。</span>'
+          : adr >= refPrice * 0.85
             ? '<span style="color:var(--green);">✓ 卖价与市场价匹配，竞争力良好。</span>'
-            : '<span style="color:var(--green);">✓ 低于周边市场价 ' + ((1-requiredAdr/refPrice)*100).toFixed(0) + '%，有提价空间。</span>'
+            : '<span style="color:var(--green);">✓ 卖价与市场参考价一致，竞争力良好。</span>'
         }
       </div>
     </div>
