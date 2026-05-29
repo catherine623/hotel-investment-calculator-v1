@@ -522,7 +522,7 @@ body {
       <select id="cityTier" onchange="onCityTierChange()">
         <option value="">请选择城市等级</option>
         <option value="1">一线城市（北上广深）</option>
-        <option value="2">新一线城市（杭州/成都/武汉等）</option>
+        <option value="2" selected>新一线城市（杭州/成都/武汉等）</option>
         <option value="3">二线城市（长沙/合肥/昆明等）</option>
         <option value="4">三线及以下</option>
       </select>
@@ -530,30 +530,30 @@ body {
     </div>
     <div class="form-item">
       <label>具体城市 / 商圈</label>
-      <input type="text" id="location" placeholder="例如：成都市锦江区春熙路商圈">
+      <input type="text" id="location" placeholder="例如：成都市锦江区春熙路商圈" value="成都市锦江区春熙路商圈">
     </div>
     <div class="form-item">
       <label>前期一次性总投入（万元）</label>
-      <input type="number" id="totalInvestment" placeholder="请输入金额" min="100" step="1">
+      <input type="number" id="totalInvestment" placeholder="请输入金额" min="100" step="1" value="2000">
       <div class="unit">含装修、设备、加盟费、开办费等全部前期投入</div>
     </div>
     <div class="form-item">
       <label>房间量（间）</label>
-      <input type="number" id="roomCount" placeholder="请输入房间数" min="10" step="1">
+      <input type="number" id="roomCount" placeholder="请输入房间数" min="10" step="1" value="110">
     </div>
     <div class="form-item">
       <label>年租金（万元）</label>
-      <input type="number" id="annualRent" placeholder="请输入年租金" min="0" step="0.1">
+      <input type="number" id="annualRent" placeholder="请输入年租金" min="0" step="0.1" value="320">
       <div class="unit">若为自有物业填0，租金通常计入固定成本</div>
     </div>
     <div class="form-item">
       <label>周边参考卖价（元/间/晚）</label>
-      <input type="number" id="referencePrice" placeholder="请输入参考均价" min="50" step="1">
+      <input type="number" id="referencePrice" placeholder="请输入参考均价" min="50" step="1" value="400">
       <div class="unit">参考周边同档次酒店的门市/OTA均价</div>
     </div>
     <div class="form-item">
       <label>周边参考入住率（%）</label>
-      <input type="number" id="referenceOccupancy" placeholder="例如：70" min="30" max="100" step="0.1">
+      <input type="number" id="referenceOccupancy" placeholder="例如：70" min="30" max="100" step="0.1" value="72">
       <div class="unit">周边同类酒店年均入住率，参考STR报告或本地调研</div>
     </div>
     <div class="form-item">
@@ -562,7 +562,7 @@ body {
         <option value="">请选择目标年限</option>
         <option value="3">3 年</option>
         <option value="5">5 年</option>
-        <option value="8">8 年</option>
+        <option value="8" selected>8 年</option>
         <option value="10">10 年</option>
         <option value="12">12 年</option>
         <option value="15">15 年</option>
