@@ -550,6 +550,13 @@ body {
       <label>房间量（间）</label>
       <input type="number" id="roomCount" placeholder="请输入房间数" min="10" step="1" value="110" oninput="recalcInvestment()">
     </div>
+    <div class="form-item full-width">
+      <div id="investModeTabs" style="display:flex;gap:0;margin-bottom:12px;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
+        <button class="invest-tab active" data-mode="detail" onclick="switchInvestMode('detail')" style="flex:1;padding:10px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;transition:all 0.2s;font-family:inherit;">📐 分项输入（自动汇总）</button>
+        <button class="invest-tab" data-mode="direct" onclick="switchInvestMode('direct')" style="flex:1;padding:10px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:#f9f8f5;color:var(--text-secondary);transition:all 0.2s;font-family:inherit;">✏️ 直接输入总额</button>
+      </div>
+    </div>
+    <div id="investDetailFields">
     <div class="form-item">
       <label>单房投资额（万元/间）</label>
       <input type="number" id="perRoomInvest" placeholder="含硬装+软装+设备" min="0" step="0.1" value="15" oninput="recalcInvestment()">
@@ -574,6 +581,14 @@ body {
       <label>其他费用（万元）</label>
       <input type="number" id="otherFees" placeholder="开办费/家具/证照等" min="0" step="1" value="150" oninput="recalcInvestment()">
       <div class="unit">开办费、消防/证照/家具家电、前期筹备等</div>
+    </div>
+    </div>
+    <div id="investDirectFields" style="display:none;">
+      <div class="form-item full-width">
+        <label>前期一次性总投入（万元）</label>
+        <input type="number" id="directInvestment" placeholder="请输入前期总投入金额" min="100" step="1" value="2000" oninput="recalcDirectInvestment()">
+        <div class="unit">含装修、设备、开办费及<strong>一次性加盟费</strong>等全部前期投入</div>
+      </div>
     </div>
     <div class="form-item full-width" style="background:linear-gradient(135deg,#f0f7f4,#f5f0e8);padding:12px 16px;border-radius:var(--radius);border:1px solid var(--border);">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
@@ -776,7 +791,34 @@ const DEPRECIATION_YEARS = 15;
 // 计算 OTA 佣金占总收入比 = 15% × OTA渠道预订占比
 function calcOtaCostPct(otaChannelPct) { return OTA_COMMISSION_RATE * otaChannelPct; }
 
-// 自动计算前期一次性总投入
+// 切换投入输入模式
+function switchInvestMode(mode) {
+  const tabs = document.querySelectorAll('.invest-tab');
+  tabs.forEach(t => {
+    if (t.dataset.mode === mode) {
+      t.style.background = 'var(--blue)';
+      t.style.color = '#fff';
+    } else {
+      t.style.background = '#f9f8f5';
+      t.style.color = 'var(--text-secondary)';
+    }
+  });
+  document.getElementById('investDetailFields').style.display = mode === 'detail' ? 'block' : 'none';
+  document.getElementById('investDirectFields').style.display = mode === 'direct' ? 'block' : 'none';
+  if (mode === 'detail') recalcInvestment();
+  else recalcDirectInvestment();
+}
+
+// 直接输入模式：更新总额
+function recalcDirectInvestment() {
+  const val = parseInt(document.getElementById('directInvestment').value) || 0;
+  document.getElementById('totalInvestmentDisplay').innerHTML =
+    val.toLocaleString() + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);"> 万元</span>';
+  document.getElementById('totalInvestment').value = val;
+  document.getElementById('investBreakdown').textContent = '直接输入总额模式';
+}
+
+// 自动计算前期一次性总投入（分项模式）
 function recalcInvestment() {
   const rooms = parseInt(document.getElementById('roomCount').value) || 0;
   const perRoom = parseFloat(document.getElementById('perRoomInvest').value) || 0;
