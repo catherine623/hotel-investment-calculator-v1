@@ -592,6 +592,15 @@ body {
   <!-- 关键指标行 -->
   <div class="metric-row" id="metricRow"></div>
 
+  <!-- 单房运营成本控制看板 -->
+  <div class="card" id="perRoomCostCard">
+    <div class="card-header" style="cursor:default;">
+      <span class="icon">💰</span> 单房运营成本控制看板
+      <span style="font-weight:400;font-size:12px;color:var(--text-muted);margin-left:4px;">（每间已售客房的日均运营成本）</span>
+    </div>
+    <div id="perRoomCostContent"></div>
+  </div>
+
   <!-- 运营成本结构 -->
   <div class="card">
     <div class="card-header" style="cursor:default;">
@@ -886,6 +895,77 @@ function generateReport() {
       <div class="mlabel">年经营毛利 GOP</div>
       <div class="mval">¥${Math.round(annualGop)}万</div>
       <div class="msub">GOP率 ${(gopRatio*100).toFixed(1)}%&nbsp;|&nbsp;GOP-租金 ¥${Math.round(netOperatingIncome)}万/年</div>
+    </div>
+  `;
+
+  // ---- 单房运营成本看板 ----
+  const perRoomCostNight = Math.round(adr * totalCostRatio);
+  const soldRoomsAnnual = Math.round(rooms * 365 * refOcc / 100);
+  const perRoomCostAnnual = Math.round(annualCost * 10000 / soldRoomsAnnual);
+
+  // 阈值：基于ADR的成本占比
+  const targetCostRatio = 0.50; // 理想：运营成本率 ≤50%（GOP≥50%）
+  const warnCostRatio = 0.55;   // 预警：运营成本率 ≤55%
+  const dangerCostRatio = 0.60;  // 危险：运营成本率 >60%
+  const targetCostYuan = Math.round(adr * targetCostRatio);
+  const warnCostYuan = Math.round(adr * warnCostRatio);
+  const dangerCostYuan = Math.round(adr * dangerCostRatio);
+
+  let costStatusText, costStatusClass, costStatusIcon, markerColor;
+  if (totalCostRatio <= targetCostRatio) {
+    costStatusText = '优秀'; costStatusClass = 'feasible'; costStatusIcon = '✅'; markerColor = 'var(--green)';
+  } else if (totalCostRatio <= warnCostRatio) {
+    costStatusText = '良好'; costStatusClass = 'challenging'; costStatusIcon = '🔶'; markerColor = 'var(--amber)';
+  } else {
+    costStatusText = '偏高'; costStatusClass = 'difficult'; costStatusIcon = '🔴'; markerColor = 'var(--red)';
+  }
+
+  const BAR_SCALE = 0.70; // 条形图刻度范围 0-70%
+  const barTargetW = (targetCostRatio / BAR_SCALE * 100).toFixed(1);
+  const barWarnW = ((warnCostRatio - targetCostRatio) / BAR_SCALE * 100).toFixed(1);
+  const barDangerW = ((dangerCostRatio - warnCostRatio) / BAR_SCALE * 100).toFixed(1);
+  const barMarkerPos = Math.min(totalCostRatio / BAR_SCALE * 100, 100).toFixed(1);
+
+  document.getElementById('perRoomCostContent').innerHTML = `
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">当前项目单房日均运营成本</div>
+      <div style="font-size:42px;font-weight:700;color:${markerColor};line-height:1.1;">
+        ¥${perRoomCostNight}<span style="font-size:16px;font-weight:400;color:var(--text-secondary);"> 元/间/晚</span>
+      </div>
+      <div style="font-size:13px;margin-top:8px;">
+        <span class="hero-verdict ${costStatusClass}">${costStatusIcon} ${costStatusText}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">
+        年售房 <b>${soldRoomsAnnual.toLocaleString()}</b> 间夜 · 年运营成本 ¥${Math.round(annualCost)}万 · 均摊每间已售客房 ¥${perRoomCostAnnual}元/晚
+      </div>
+    </div>
+
+    <!-- 可视化条形图 -->
+    <div style="position:relative;height:32px;background:#f5f3ef;border-radius:16px;margin:16px 0 6px;overflow:hidden;">
+      <div style="position:absolute;left:0;top:0;height:100%;width:${barTargetW}%;background:rgba(45,106,79,0.12);border-radius:16px 0 0 16px;"></div>
+      <div style="position:absolute;left:${barTargetW}%;top:0;height:100%;width:${barWarnW}%;background:rgba(184,105,10,0.10);"></div>
+      <div style="position:absolute;left:${(parseFloat(barTargetW) + parseFloat(barWarnW)).toFixed(1)}%;top:0;height:100%;width:${barDangerW}%;background:rgba(192,57,43,0.10);border-radius:0 16px 16px 0;"></div>
+      <div style="position:absolute;left:${barMarkerPos}%;top:3px;bottom:3px;width:4px;background:${markerColor};border-radius:2px;transform:translateX(-50%);box-shadow:0 0 4px ${markerColor};"></div>
+      <div style="position:absolute;left:${barMarkerPos}%;top:-2px;transform:translateX(-50%);font-size:10px;font-weight:700;color:${markerColor};white-space:nowrap;">▼ ${(totalCostRatio*100).toFixed(1)}%</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);padding:0 2px;">
+      <span>0%</span>
+      <span style="color:var(--green);font-weight:500;">理想 ≤${targetCostYuan}元</span>
+      <span style="color:var(--amber);font-weight:500;">预警 ${warnCostYuan}元</span>
+      <span style="color:var(--red);font-weight:500;">危险 ≥${dangerCostYuan}元</span>
+      <span>¥${Math.round(adr)}元(ADR)</span>
+    </div>
+
+    <div class="divider"></div>
+    <div style="font-size:12px;color:var(--text-secondary);line-height:1.8;">
+      <b>解读：</b>单房运营成本 = 平均卖价 × 运营成本率（${(totalCostRatio*100).toFixed(1)}%）。<br>
+      ${totalCostRatio <= targetCostRatio
+        ? `当前成本控制处于<strong style="color:var(--green);">优秀水平</strong>，单房成本 ¥${perRoomCostNight} 低于理想线 ¥${targetCostYuan}，GOP空间充裕。`
+        : totalCostRatio <= warnCostRatio
+          ? `当前成本控制处于<strong style="color:var(--amber);">良好水平</strong>，单房成本 ¥${perRoomCostNight} 在理想线 ¥${targetCostYuan} 和预警线 ¥${warnCostYuan} 之间，仍有优化空间。`
+          : `当前成本控制处于<strong style="color:var(--red);">偏高水平</strong>，单房成本 ¥${perRoomCostNight} 已超过预警线 ¥${warnCostYuan}，建议重点关注人工和OTA佣金优化。`
+      }<br>
+      <span style="color:var(--text-muted);">提示：降低单房成本可通过提升入住率（分摊固定成本）、降低OTA渠道占比（减少佣金）、或优化人工配置实现。</span>
     </div>
   `;
 
