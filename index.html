@@ -592,6 +592,15 @@ body {
   <!-- 关键指标行 -->
   <div class="metric-row" id="metricRow"></div>
 
+  <!-- 回报周期测算过程 -->
+  <div class="card" id="paybackCalcCard">
+    <div class="card-header" style="cursor:default;">
+      <span class="icon">🧮</span> 回报周期测算过程
+      <span style="font-weight:400;font-size:12px;color:var(--text-muted);margin-left:4px;">（静态回收期口径）</span>
+    </div>
+    <div id="paybackCalcContent"></div>
+  </div>
+
   <!-- 单房运营成本控制看板 -->
   <div class="card" id="perRoomCostCard">
     <div class="card-header" style="cursor:default;">
@@ -895,6 +904,57 @@ function generateReport() {
       <div class="mlabel">年经营毛利 GOP</div>
       <div class="mval">¥${Math.round(annualGop)}万</div>
       <div class="msub">GOP率 ${(gopRatio*100).toFixed(1)}%&nbsp;|&nbsp;GOP-租金 ¥${Math.round(netOperatingIncome)}万/年</div>
+    </div>
+  `;
+
+  // ---- 回报周期测算过程 ----
+  const soldRoomsAnnualCalc = Math.round(rooms * 365 * refOcc / 100);
+  const paybackSteps = [
+    { no: '①', label: '年售房量', formula: `${rooms}间 × 365天 × ${refOcc.toFixed(1)}%`, result: `${soldRoomsAnnualCalc.toLocaleString()} 间夜`, color: 'var(--blue)' },
+    { no: '②', label: '年度营收总额', formula: `¥${adr} × ${soldRoomsAnnualCalc.toLocaleString()}间夜 ÷ 10,000`, result: `¥${annualRev.toFixed(1)} 万`, color: 'var(--green)' },
+    { no: '③', label: '运营成本率', formula: costItems.map(c => c.pct).reduce((a,b) => a+b, 0).toFixed(3) + '（各项成本占比之和）', result: `${(totalCostRatio*100).toFixed(1)}%`, color: 'var(--red)' },
+    { no: '④', label: '年经营毛利 GOP', formula: `¥${annualRev.toFixed(1)}万 × ${((1-totalCostRatio)*100).toFixed(1)}%（GOP率）`, result: `¥${annualGop.toFixed(1)} 万`, color: 'var(--green)' },
+    { no: '⑤', label: '扣除年租金', formula: `¥${annualGop.toFixed(1)}万 − ¥${rent.toFixed(1)}万`, result: `¥${netOperatingIncome.toFixed(1)} 万/年`, highlight: true, color: 'var(--blue)' },
+    { no: '⑥', label: '回报周期', formula: `¥${investment.toLocaleString()}万 ÷ ¥${netOperatingIncome.toFixed(1)}万/年`, result: actualPayback === Infinity ? '∞（无法回收）' : `${actualPayback.toFixed(1)} 年`, final: true, color: 'var(--blue)' },
+  ];
+
+  document.getElementById('paybackCalcContent').innerHTML = `
+    <style>
+      .calc-step { display:flex; align-items:flex-start; gap:12px; padding:12px 0; border-bottom:1px dashed var(--border); position:relative; }
+      .calc-step:last-child { border-bottom:none; }
+      .calc-step-no { flex-shrink:0; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#fff; }
+      .calc-step-body { flex:1; min-width:0; }
+      .calc-step-label { font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom:3px; }
+      .calc-step-formula { font-size:12px; color:var(--text-muted); font-family:'Menlo','Consolas',monospace; background:#f9f8f5; padding:4px 8px; border-radius:4px; display:inline-block; margin-bottom:4px; word-break:break-all; }
+      .calc-step-result { font-size:15px; font-weight:700; }
+      .calc-step-final { font-size:22px; }
+      .calc-step-arrow { position:absolute; left:13px; top:40px; width:2px; height:calc(100% - 28px); background:var(--border); }
+      .calc-step:last-child .calc-step-arrow { display:none; }
+      .payback-summary-box { background:linear-gradient(135deg,#f0f7f4,#f5f0e8); border-radius:12px; padding:16px 20px; margin-top:12px; }
+    </style>
+    ${paybackSteps.map(s => `
+      <div class="calc-step">
+        ${s.no !== '⑥' ? '<div class="calc-step-arrow"></div>' : ''}
+        <div class="calc-step-no" style="background:${s.color};">${s.no}</div>
+        <div class="calc-step-body">
+          <div class="calc-step-label">${s.label}</div>
+          <div class="calc-step-formula">${s.formula}</div>
+          <div class="calc-step-result ${s.final ? 'calc-step-final' : ''}" style="color:${s.color};">
+            ${s.highlight && netOperatingIncome > 0 ? '=&nbsp;' : ''}${s.result}
+            ${s.highlight && netOperatingIncome <= 0 ? '&nbsp;<span style="font-size:12px;font-weight:400;color:var(--red);">⚠ 年现金流为负</span>' : ''}
+          </div>
+        </div>
+      </div>
+    `).join('')}
+    <div class="payback-summary-box">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">📐 测算口径说明</div>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.8;">
+        <b>静态回收期</b> = 前期总投入 ÷（年GOP − 年租金），行业惯例口径，<b>不加回折旧</b>。<br>
+        - 前期投入为一次性支出（装修、设备、<b>一次性加盟费</b>、开办费等），不计入年度运营成本<br>
+        - 运营成本仅含日常经营性支出（人工、能源、消耗品、OTA佣金、税、品牌管理费等）<br>
+        - GOP = 营收 − 运营成本（不含租金和折旧），再扣除租金后为实际可用于回本的现金流<br>
+        ${actualPayback !== Infinity && actualPayback > tp.paybackFeasible ? '<br><span style="color:var(--red);">⚠ 当前回报周期超出该城市等级参考范围，建议优化营收结构或控制前期投入规模。</span>' : ''}
+      </div>
     </div>
   `;
 
