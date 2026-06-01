@@ -548,7 +548,7 @@ body {
     <div class="form-item">
       <label>前期一次性总投入（万元）</label>
       <input type="number" id="totalInvestment" placeholder="请输入金额" min="100" step="1" value="2000">
-      <div class="unit">含装修、设备、加盟费、开办费等全部前期投入</div>
+      <div class="unit">含装修、设备、开办费及<strong>一次性加盟费</strong>等全部前期投入</div>
     </div>
     <div class="form-item">
       <label>房间量（间）</label>
@@ -670,42 +670,41 @@ body {
 // ============================================================
 // 成本参数：基于行业真实项目数据校准
 // OTA佣金 = 15% × OTA渠道预订占比（非总收入15%）
-// 加盟管理费参考行业均值 ~3%（华住/锦江等品牌基础费率）
 // 品牌管理费 = 4%×营业总收入（GMV），参考锦江都城4%、亚朵6%标准
-// 品牌相关费用合计约7%（加盟3%+品牌管理4%），属行业中位水平
+// 一次性加盟费为前期投入（CAPEX），请计入"前期一次性总投入"
 // ============================================================
 const TIER_PARAMS = {
   1: { // 一线城市（北上广深）
     label: '一线城市', cities: '北上广深',
-    labor: 0.155, energy: 0.055, supplies: 0.045, maintenance: 0.035, marketingOther: 0.025, admin: 0.048, franchise: 0.030, brandMgmt: 0.040,
+    labor: 0.155, energy: 0.055, supplies: 0.045, maintenance: 0.035, marketingOther: 0.025, admin: 0.048, brandMgmt: 0.040,
     otaPct: 0.42, corpPct: 0.25, walkinPct: 0.18, directPct: 0.15,
     revparDesc: '280–450 元', paybackDesc: '6–10 年', investPerRoomDesc: '20–30 万/间',
     paybackGood: 8, paybackFeasible: 10,
-    desc: '一线城市竞争激烈，人工成本占收入 15-16% 为各类最高。OTA依赖度 40-45%，品牌相关费用合计约 7%（加盟3%+品牌管理4%）。RevPAR 全国最高但租金与人工双重挤压，GOP率通常 42-50%。'
+    desc: '一线城市竞争激烈，人工成本占收入 15-16% 为各类最高。OTA依赖度 40-45%，品牌管理费约 4%。RevPAR 全国最高但租金与人工双重挤压，GOP率通常 42-50%。'
   },
   2: { // 新一线城市（杭州/成都/武汉/南京等）
     label: '新一线城市', cities: '杭州/成都/武汉/南京等',
-    labor: 0.135, energy: 0.050, supplies: 0.042, maintenance: 0.030, marketingOther: 0.025, admin: 0.045, franchise: 0.030, brandMgmt: 0.040,
+    labor: 0.135, energy: 0.050, supplies: 0.042, maintenance: 0.030, marketingOther: 0.025, admin: 0.045, brandMgmt: 0.040,
     otaPct: 0.40, corpPct: 0.28, walkinPct: 0.18, directPct: 0.14,
     revparDesc: '200–350 元', paybackDesc: '5–8 年', investPerRoomDesc: '16–24 万/间',
     paybackGood: 6, paybackFeasible: 8,
-    desc: '新一线城市处于快速发展期，商务+旅游双轮驱动。人工成本约 13-14%，运营性价比为各等级最优，当前中档酒店投资最热门区域。品牌费用合计 7%，行业GOP率参考 47-55%。'
+    desc: '新一线城市处于快速发展期，商务+旅游双轮驱动。人工成本约 13-14%，运营性价比为各等级最优，当前中档酒店投资最热门区域。品牌管理费 4%，行业GOP率参考 47-55%。'
   },
   3: { // 二线城市（长沙/合肥/昆明/厦门/常州/青岛等）
     label: '二线城市', cities: '长沙/合肥/昆明/厦门/常州/青岛等',
-    labor: 0.150, energy: 0.048, supplies: 0.040, maintenance: 0.035, marketingOther: 0.022, admin: 0.043, franchise: 0.030, brandMgmt: 0.040,
+    labor: 0.150, energy: 0.048, supplies: 0.040, maintenance: 0.035, marketingOther: 0.022, admin: 0.043, brandMgmt: 0.040,
     otaPct: 0.37, corpPct: 0.30, walkinPct: 0.23, directPct: 0.10,
     revparDesc: '150–280 元', paybackDesc: '4–7 年', investPerRoomDesc: '13–21 万/间',
     paybackGood: 5, paybackFeasible: 7,
-    desc: '二线城市运营成本较低，协议客户与散客占比合计超 50%。品牌费用合计 7%，不同项目因选址和租金水平差异化显著，GOP率差距可达5-10个百分点，租金谈判为关键成功因素。'
+    desc: '二线城市运营成本较低，协议客户与散客占比合计超 50%。品牌管理费 4%，不同项目因选址和租金水平差异化显著，GOP率差距可达5-10个百分点，租金谈判为关键成功因素。'
   },
   4: { // 三线及以下
     label: '三线及以下', cities: '地级市/县城',
-    labor: 0.130, energy: 0.042, supplies: 0.038, maintenance: 0.030, marketingOther: 0.018, admin: 0.040, franchise: 0.030, brandMgmt: 0.040,
+    labor: 0.130, energy: 0.042, supplies: 0.038, maintenance: 0.030, marketingOther: 0.018, admin: 0.040, brandMgmt: 0.040,
     otaPct: 0.32, corpPct: 0.28, walkinPct: 0.30, directPct: 0.10,
     revparDesc: '100–200 元', paybackDesc: '4–8 年', investPerRoomDesc: '8–15 万/间',
     paybackGood: 5, paybackFeasible: 8,
-    desc: '投资最小但需求波动较大，OTA依赖度最低（约 32%），散客占比最高。品牌费用合计 7%，需重点关注本地人口流动和大型项目落地情况。'
+    desc: '投资最小但需求波动较大，OTA依赖度最低（约 32%），散客占比最高。品牌管理费 4%，需重点关注本地人口流动和大型项目落地情况。'
   }
 };
 
@@ -790,7 +789,6 @@ function generateReport() {
     { key: 'energy', name: '能源费用（水电气）', pct: tp.energy, color: '#00acc1' },
     { key: 'supplies', name: '客房消耗品', pct: tp.supplies, color: '#7c4dff' },
     { key: 'maintenance', name: '维修维护费', pct: tp.maintenance, color: '#ff7043' },
-    { key: 'franchise', name: '加盟管理费', pct: tp.franchise, color: '#ff6f00' },
     { key: 'brandMgmt', name: '品牌管理费', pct: tp.brandMgmt, color: '#ab47bc', note: '=4%×营业总收入（GMV），按月确认' },
     { key: 'marketingOther', name: '市场推广（非OTA）', pct: tp.marketingOther, color: '#4caf50' },
     { key: 'admin', name: '管理费用及其他', pct: tp.admin, color: '#5c6bc0' },
