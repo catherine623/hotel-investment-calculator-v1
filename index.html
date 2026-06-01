@@ -310,6 +310,8 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  height: 100%;
+  justify-content: flex-end;
 }
 .month-stack {
   width: 100%;
@@ -934,10 +936,12 @@ function generateReport() {
   const monthAvg = annualRev / 12;
   const chColors = { ota: '#e74c3c', corp: '#3498db', walkin: '#2ecc71', direct: '#9b59b6' };
   const chLabels = { ota: 'OTA', corp: '大客户', walkin: '散客', direct: '自营' };
+  // 柱体最大高度（匹配 .monthly-grid 200px 减去标签约36px）
+  const BAR_MAX = 164;
 
   for (let i = 0; i < 12; i++) {
     const mthRev = monthAvg * SEASONAL_FACTORS[i];
-    const totalHeightPct = (SEASONAL_FACTORS[i] / maxFactor) * 100;
+    const totalHeightPx = Math.max(4, (SEASONAL_FACTORS[i] / maxFactor) * BAR_MAX);
     const segs = [
       { key: 'ota', pct: tp.otaPct },
       { key: 'corp', pct: tp.corpPct },
@@ -946,11 +950,12 @@ function generateReport() {
     ];
     let segHtml = '';
     segs.forEach(s => {
+      const segHeightPx = Math.max(1, Math.round(totalHeightPx * s.pct));
       const segRev = (mthRev * s.pct).toFixed(0);
-      segHtml += `<div class="month-stack-segment" style="height:${(s.pct*100).toFixed(0)}%;background:${chColors[s.key]};" title="${chLabels[s.key]}: ¥${segRev}万"></div>`;
+      segHtml += `<div class="month-stack-segment" style="height:${segHeightPx}px;background:${chColors[s.key]};" title="${chLabels[s.key]}: ¥${segRev}万"></div>`;
     });
     monthlyHtml += `<div class="month-col">
-      <div class="month-stack" style="height:${totalHeightPct.toFixed(0)}%;">${segHtml}</div>
+      <div class="month-stack" style="height:${Math.round(totalHeightPx)}px;">${segHtml}</div>
       <div class="month-val">¥${Math.round(mthRev)}</div>
       <div class="month-label">${SEASON_LABELS[i]}</div>
     </div>`;
