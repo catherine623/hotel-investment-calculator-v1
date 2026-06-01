@@ -324,6 +324,7 @@ body {
 .month-stack-segment {
   width: 100%;
   transition: height 0.3s;
+  flex-shrink: 0;
 }
 .month-label { font-size: 10px; color: var(--text-muted); text-align: center; }
 .month-val { font-size: 9px; color: var(--text-muted); text-align: center; }
@@ -807,6 +808,9 @@ function generateReport() {
   const actualCashFlow = annualGop - rent + annualDepreciation;
   const actualPayback = actualCashFlow > 0 ? investment / actualCashFlow : Infinity;
 
+  // ---- 先显示结果区域，确保后续图表在可见容器中渲染 ----
+  document.getElementById('resultArea').style.display = 'block';
+
   // ---- 渲染 Hero ----
   const heroPayback = document.getElementById('heroPayback');
   const heroVerdict = document.getElementById('heroVerdict');
@@ -1149,8 +1153,7 @@ function generateReport() {
     </div>
   `;
 
-  // ---- 显示结果区域 & 滚动 ----
-  document.getElementById('resultArea').style.display = 'block';
+  // ---- 滚动到结果区域 ----
   document.getElementById('heroCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   // 生成报告时也计入使用次数
