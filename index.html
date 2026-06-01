@@ -460,6 +460,7 @@ body {
   .month-label { font-size: 9px; }
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
 <div class="page-wrap">
@@ -546,13 +547,40 @@ body {
       <input type="text" id="location" placeholder="例如：成都市锦江区春熙路商圈" value="成都市锦江区春熙路商圈">
     </div>
     <div class="form-item">
-      <label>前期一次性总投入（万元）</label>
-      <input type="number" id="totalInvestment" placeholder="请输入金额" min="100" step="1" value="2000">
-      <div class="unit">含装修、设备、开办费及<strong>一次性加盟费</strong>等全部前期投入</div>
+      <label>房间量（间）</label>
+      <input type="number" id="roomCount" placeholder="请输入房间数" min="10" step="1" value="110" oninput="recalcInvestment()">
     </div>
     <div class="form-item">
-      <label>房间量（间）</label>
-      <input type="number" id="roomCount" placeholder="请输入房间数" min="10" step="1" value="110">
+      <label>单房投资额（万元/间）</label>
+      <input type="number" id="perRoomInvest" placeholder="含硬装+软装+设备" min="0" step="0.1" value="15" oninput="recalcInvestment()">
+      <div class="unit">每间客房的平均投入，含硬装、软装及设备配置</div>
+    </div>
+    <div class="form-item">
+      <label>公共区域装修费用（万元）</label>
+      <input type="number" id="publicRenovation" placeholder="大堂/走廊/公区" min="0" step="1" value="120" oninput="recalcInvestment()">
+      <div class="unit">大堂、走廊、餐厅、公区等装修</div>
+    </div>
+    <div class="form-item">
+      <label>设计费用（万元）</label>
+      <input type="number" id="designFee" placeholder="室内+外立面设计" min="0" step="1" value="50" oninput="recalcInvestment()">
+      <div class="unit">室内设计、外立面设计、灯光设计等</div>
+    </div>
+    <div class="form-item">
+      <label>加盟费用（万元）</label>
+      <input type="number" id="franchiseFee" placeholder="一次性加盟费" min="0" step="1" value="80" oninput="recalcInvestment()">
+      <div class="unit">品牌一次性加盟费（非年度品牌管理费）</div>
+    </div>
+    <div class="form-item">
+      <label>其他费用（万元）</label>
+      <input type="number" id="otherFees" placeholder="开办费/家具/证照等" min="0" step="1" value="150" oninput="recalcInvestment()">
+      <div class="unit">开办费、消防/证照/家具家电、前期筹备等</div>
+    </div>
+    <div class="form-item full-width" style="background:linear-gradient(135deg,#f0f7f4,#f5f0e8);padding:12px 16px;border-radius:var(--radius);border:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+        <label style="margin:0;font-size:14px;font-weight:600;color:var(--text-primary);">前期一次性总投入</label>
+        <div style="font-size:24px;font-weight:700;color:var(--blue);" id="totalInvestmentDisplay">2,000<span style="font-size:13px;font-weight:400;color:var(--text-muted);"> 万元</span></div>
+      </div>
+      <div class="unit" id="investBreakdown" style="margin-top:6px;"></div>
     </div>
     <div class="form-item">
       <label>年租金（万元）</label>
@@ -570,9 +598,11 @@ body {
       <div class="unit">周边同类酒店年均入住率，参考STR报告或本地调研</div>
     </div>
   </div>
+  <input type="hidden" id="totalInvestment" value="2000">
   <button class="gen-btn" onclick="generateReport()">生成投资测算报告</button>
   <div id="input-error" style="display:none; color:var(--red); font-size:12px; margin-top:10px; text-align:center;"></div>
 </div>
+<script>recalcInvestment();</script>
 
 <!-- ==================== 测算结果（初始隐藏） ==================== -->
 <div class="result-area" id="resultArea">
@@ -675,6 +705,15 @@ body {
     <div class="guide-grid" id="guideGrid"></div>
   </div>
 
+  <!-- 保存报告为图片 -->
+  <div id="saveImageArea" style="display:none;text-align:center;padding:24px 0 8px;">
+    <button id="saveImgBtn" onclick="saveReportAsImage()" style="display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border:none;border-radius:8px;background:var(--blue);color:#fff;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(27,107,138,0.25);transition:all 0.2s;font-family:inherit;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      保存报告为图片
+    </button>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">长按图片可保存到手机相册</div>
+  </div>
+
 </div>
 
 <!-- Footer -->
@@ -745,6 +784,29 @@ const DEPRECIATION_YEARS = 15;
 
 // 计算 OTA 佣金占总收入比 = 15% × OTA渠道预订占比
 function calcOtaCostPct(otaChannelPct) { return OTA_COMMISSION_RATE * otaChannelPct; }
+
+// 自动计算前期一次性总投入
+function recalcInvestment() {
+  const rooms = parseInt(document.getElementById('roomCount').value) || 0;
+  const perRoom = parseFloat(document.getElementById('perRoomInvest').value) || 0;
+  const publicReno = parseFloat(document.getElementById('publicRenovation').value) || 0;
+  const design = parseFloat(document.getElementById('designFee').value) || 0;
+  const franchise = parseFloat(document.getElementById('franchiseFee').value) || 0;
+  const other = parseFloat(document.getElementById('otherFees').value) || 0;
+  const total = Math.round(rooms * perRoom + publicReno + design + franchise + other);
+
+  document.getElementById('totalInvestmentDisplay').innerHTML =
+    total.toLocaleString() + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);"> 万元</span>';
+  document.getElementById('totalInvestment').value = total;
+
+  const parts = [];
+  if (rooms && perRoom) parts.push(`客房${rooms}间×¥${perRoom}万=${(rooms*perRoom).toFixed(0)}万`);
+  if (publicReno) parts.push(`公区装修¥${publicReno}万`);
+  if (design) parts.push(`设计¥${design}万`);
+  if (franchise) parts.push(`加盟费¥${franchise}万`);
+  if (other) parts.push(`其他¥${other}万`);
+  document.getElementById('investBreakdown').textContent = parts.join(' + ');
+}
 
 // 月季节性因子（通用中国酒店市场）
 const SEASONAL_FACTORS = [0.65, 0.70, 0.85, 0.95, 1.10, 1.00, 1.15, 1.20, 0.95, 1.10, 0.85, 0.80];
@@ -1327,6 +1389,9 @@ function generateReport() {
   // ---- 滚动到结果区域 ----
   document.getElementById('heroCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
+  // 显示保存图片按钮
+  document.getElementById('saveImageArea').style.display = 'block';
+
   // 生成报告时也计入使用次数
   bumpUsage();
 }
@@ -1349,6 +1414,62 @@ function bumpUsage() {
     document.getElementById('usageBadge').textContent = '📊 ' + count + ' 次';
   } catch(e) { document.getElementById('usageBadge').textContent = '📊 --'; }
 })();
+
+// ============================================================
+// 保存报告为图片
+// ============================================================
+function saveReportAsImage() {
+  const btn = document.getElementById('saveImgBtn');
+  const area = document.getElementById('resultArea');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;">⏳ 正在生成图片…</span>';
+
+  // 临时隐藏保存按钮本身，避免截图内出现
+  const saveArea = document.getElementById('saveImageArea');
+  saveArea.style.display = 'none';
+
+  html2canvas(area, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: '#f9f8f5',
+    logging: false,
+    windowWidth: area.scrollWidth,
+    windowHeight: area.scrollHeight,
+  }).then(canvas => {
+    saveArea.style.display = 'block';
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 保存报告为图片';
+
+    // 创建弹层展示图片，用户可长按保存
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;overflow:auto;';
+    overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+
+    const img = document.createElement('img');
+    img.src = canvas.toDataURL('image/png');
+    img.style.cssText = 'max-width:100%;max-height:80vh;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,0.3);';
+    img.onclick = function(e) { e.stopPropagation(); };
+
+    const hint = document.createElement('div');
+    hint.style.cssText = 'color:#fff;font-size:14px;margin-top:16px;text-align:center;line-height:1.6;';
+    hint.innerHTML = '📱 <b>长按图片</b>即可保存到手机相册<br><span style="font-size:12px;opacity:0.7;">点击空白区域关闭</span>';
+
+    const closeBtn = document.createElement('div');
+    closeBtn.style.cssText = 'margin-top:12px;padding:8px 24px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);border-radius:20px;color:#fff;font-size:13px;cursor:pointer;';
+    closeBtn.textContent = '关闭';
+    closeBtn.onclick = function() { overlay.remove(); };
+
+    overlay.appendChild(img);
+    overlay.appendChild(hint);
+    overlay.appendChild(closeBtn);
+    document.body.appendChild(overlay);
+  }).catch(err => {
+    saveArea.style.display = 'block';
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 保存报告为图片';
+    alert('生成图片失败，请重试');
+  });
+}
 
 </script>
 </body>
