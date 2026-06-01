@@ -644,18 +644,9 @@ body {
   <div class="card">
     <div class="card-header" style="cursor:default;">
       <span class="icon">📋</span> 运营成本结构
-      <span style="font-weight:400;font-size:12px;color:var(--text-muted);margin-left:4px;">（基于<span id="tierLabelCost">所选</span>城市等级动态调整）</span>
+      <span style="font-weight:400;font-size:12px;color:var(--text-muted);margin-left:4px;">（基于<span id="tierLabelCost">所选</span>城市等级）</span>
     </div>
-    <div class="ota-banner">
-      <span class="icon">⚠️</span>
-      <span>OTA平台佣金为 OTA渠道收入的 <b>15%</b>（非总收入15%）。实际 OTA 佣金占总收入比 = 15% × OTA渠道预订占比。携程/美团/飞猪综合加权佣率约 12-15%。</span>
-    </div>
-    <table class="cost-table">
-      <thead>
-        <tr><th>成本项目</th><th style="text-align:center;">占总收入比</th><th style="text-align:right;">年金额（万元）</th></tr>
-      </thead>
-      <tbody id="costTableBody"></tbody>
-    </table>
+    <div id="costSummaryContent"></div>
   </div>
 
   <!-- 月度GMV分解 -->
@@ -1123,49 +1114,37 @@ function generateReport() {
     </div>
   `;
 
-  // ---- 成本表格 ----
+  // ---- 成本结构简述 ----
   document.getElementById('tierLabelCost').textContent = tp.label;
-  let costHtml = '';
-  costItems.forEach(c => {
-    const amount = (annualRev * c.pct);
-    const barW = (c.pct / Math.max(totalCostRatio, 0.01)) * 100;
-    costHtml += `<tr>
-      <td>${c.name}</td>
-      <td style="text-align:center;position:relative;">
-        <span style="position:relative;z-index:1;">${(c.pct*100).toFixed(1)}%</span>
-        <div style="position:absolute;left:0;top:50%;transform:translateY(-50%);height:18px;border-radius:3px;opacity:0.12;background:${c.color};width:${Math.min(barW, 60)}%;"></div>
-      </td>
-      <td style="text-align:right;">¥${Math.round(amount)} 万</td>
-    </tr>`;
-  });
-  costHtml += `<tr class="total-row">
-    <td>运营成本合计</td>
-    <td style="text-align:center;"><b>${(totalCostRatio*100).toFixed(1)}%</b></td>
-    <td style="text-align:right;"><b>¥${Math.round(annualCost)} 万</b></td>
-  </tr>`;
-  costHtml += `<tr>
-    <td style="color:var(--text-secondary);">经营毛利 GOP</td>
-    <td style="text-align:center;color:var(--green);">${(gopRatio*100).toFixed(1)}%</td>
-    <td style="text-align:right;color:var(--green);">¥${Math.round(annualGop)} 万</td>
-  </tr>`;
-  costHtml += `<tr>
-    <td style="color:var(--text-secondary);">年租金（固定支出）</td>
-    <td style="text-align:center;color:var(--text-muted);">${annualRev > 0 ? (rent/annualRev*100).toFixed(1) : '--'}%</td>
-    <td style="text-align:right;color:var(--text-muted);">¥${Math.round(rent)} 万</td>
-  </tr>`;
-  costHtml += `<tr>
-    <td style="color:var(--text-secondary);">年折旧（${DEPRECIATION_YEARS}年直线法）</td>
-    <td style="text-align:center;color:var(--text-muted);">--</td>
-    <td style="text-align:right;color:var(--text-muted);">¥${Math.round(annualDepreciation)} 万</td>
-  </tr>`;
-  costHtml += `<tr>
-    <td><b>GOP-租金（静态回本基数）</b></td>
-    <td style="text-align:center;">--</td>
-    <td style="text-align:right;font-weight:600;color:${actualCashFlow >= 0 ? 'var(--green)' : 'var(--red)'};">
-      ¥${Math.round(actualCashFlow)} 万
-    </td>
-  </tr>`;
-  document.getElementById('costTableBody').innerHTML = costHtml;
+  const costSummaryHtml = `
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+      ${costItems.map(c => `
+        <div style="flex:1;min-width:140px;background:#f9f8f5;border-radius:8px;padding:10px 12px;border-left:3px solid ${c.color};">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px;">${c.name}</div>
+          <div style="font-size:18px;font-weight:700;color:var(--text-primary);">${(c.pct*100).toFixed(1)}%</div>
+          <div style="font-size:11px;color:var(--text-muted);">¥${Math.round(annualRev * c.pct)}万/年 · ¥${Math.round(adr * c.pct)}/间/晚</div>
+        </div>
+      `).join('')}
+    </div>
+    <div style="background:linear-gradient(135deg,#f0f7f4,#f5f0e8);border-radius:10px;padding:14px 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div>
+          <span style="font-size:13px;color:var(--text-secondary);">运营成本合计</span>
+          <span style="font-size:20px;font-weight:700;color:var(--blue);margin-left:8px;">${(totalCostRatio*100).toFixed(1)}%</span>
+          <span style="font-size:12px;color:var(--text-muted);margin-left:4px;">¥${Math.round(annualCost)}万</span>
+        </div>
+        <div style="text-align:right;">
+          <span style="font-size:13px;color:var(--text-secondary);">GOP</span>
+          <span style="font-size:20px;font-weight:700;color:var(--green);margin-left:4px;">${(gopRatio*100).toFixed(1)}%</span>
+          <span style="font-size:12px;color:var(--text-muted);margin-left:4px;">¥${Math.round(annualGop)}万</span>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:8px;border-top:1px dashed var(--border);padding-top:8px;">
+        ⚠️ OTA佣金 = 15%佣率 × ${(tp.otaPct*100).toFixed(0)}%OTA渠道占比 = ${(otaCostPct*100).toFixed(1)}% · 营业税${(TAX_RATE*100).toFixed(1)}% · 品牌管理费4%·月确认 · 租金和折旧不计入运营成本
+      </div>
+    </div>
+  `;
+  document.getElementById('costSummaryContent').innerHTML = costSummaryHtml;
 
   // ---- 月度GMV堆积图 ----
   let monthlyHtml = '';
