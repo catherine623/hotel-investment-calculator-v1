@@ -468,7 +468,7 @@ body {
 
 <!-- ==================== Header ==================== -->
 <div class="page-header">
-  <h1>酒店投资回报计算器 <span class="usage-badge" id="usageBadge" title="全网累计使用次数">📊 加载中...</span></h1>
+  <h1>酒店投资回报计算器 <span class="usage-badge" id="usageBadge" title="全网累计使用次数">📊 --</span></h1>
   <div class="subtitle">基于城市等级与市场数据的投资回收路径测算</div>
 </div>
 
@@ -1496,22 +1496,45 @@ const COUNTER_NS = 'hotel-invest-calc';
 const COUNTER_KEY = 'total-usage';
 const COUNTER_URL_UP = `https://api.counterapi.dev/v1/${COUNTER_NS}/${COUNTER_KEY}/up`;
 const COUNTER_URL_GET = `https://api.counterapi.dev/v1/${COUNTER_NS}/${COUNTER_KEY}`;
+const COUNTER_TIMEOUT = 3000; // 3秒超时
 
 function updateUsageBadge(count) {
+  const el = document.getElementById('usageBadge');
+  if (!el) return;
   if (count == null || isNaN(count)) {
-    document.getElementById('usageBadge').textContent = '📊 --';
+    el.textContent = '📊 --';
     return;
   }
-  document.getElementById('usageBadge').textContent = '📊 ' + count.toLocaleString() + ' 次';
+  el.textContent = '📊 ' + count.toLocaleString() + ' 次';
 }
 
-// 页面加载时获取全局使用次数
+// 带超时的 fetch 请求
+function fetchWithTimeout(url, timeout) {
+  return Promise.race([
+    fetch(url),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout))
+  ]);
+}
+
+// 页面加载时：先显示本地缓存 → 后台静默更新全局计数
 (function initGlobalUsage() {
-  fetch(COUNTER_URL_GET)
+  // 第一步：立即显示本地缓存值（不让用户看到"加载中"）
+  try {
+    const localCount = parseInt(localStorage.getItem('hotelCalcUsage') || '0', 10);
+    if (localCount > 0) updateUsageBadge(localCount);
+  } catch(e) {}
+
+  // 第二步：后台请求全局计数（3秒超时，失败静默）
+  fetchWithTimeout(COUNTER_URL_GET, COUNTER_TIMEOUT)
     .then(r => r.json())
-    .then(data => { if (data && data.count != null) updateUsageBadge(data.count); })
+    .then(data => {
+      if (data && typeof data.count === 'number') {
+        updateUsageBadge(data.count);
+        try { localStorage.setItem('hotelCalcGlobalUsage', data.count); } catch(e) {}
+      }
+    })
     .catch(() => {
-      // API 不可用时从 localStorage 读取上次缓存值
+      // 网络失败：尝试读取上次缓存的全局值
       try {
         const cached = parseInt(localStorage.getItem('hotelCalcGlobalUsage') || '0', 10);
         if (cached > 0) updateUsageBadge(cached);
@@ -1521,16 +1544,19 @@ function updateUsageBadge(count) {
 
 // 生成报告时 +1 并更新显示
 function bumpUsage() {
-  fetch(COUNTER_URL_UP)
+  fetchWithTimeout(COUNTER_URL_UP, COUNTER_TIMEOUT)
     .then(r => r.json())
     .then(data => {
-      if (data && data.count != null) {
+      if (data && typeof data.count === 'number') {
         updateUsageBadge(data.count);
-        try { localStorage.setItem('hotelCalcGlobalUsage', data.count); } catch(e) {}
+        try {
+          localStorage.setItem('hotelCalcGlobalUsage', data.count);
+          localStorage.setItem('hotelCalcUsage', data.count); // 同步本地计数
+        } catch(e) {}
       }
     })
     .catch(() => {
-      // API 不可用时 fallback 到 localStorage 本地计数
+      // API 不可用时 fallback 到本地计数
       try {
         let count = parseInt(localStorage.getItem('hotelCalcUsage') || '0', 10);
         count += 1;
