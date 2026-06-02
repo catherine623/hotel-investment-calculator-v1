@@ -921,8 +921,15 @@ function generateReport() {
   const roomRevenue = adr * rooms * 365 * (refOcc / 100) / 10000; // 客房收入（万元）
   const nonRoomRevenue = roomRevenue * (nonRoomPct / 100); // 非客房收入（万元）
   const annualRev = roomRevenue + nonRoomRevenue; // 营业总收入（万元）
-  const annualGop = annualRev * gopRatio;
-  const annualCost = annualRev * totalCostRatio;
+
+  // 运营成本率（TIER_PARAMS参数）基于客房收入口径定义，非客房收入有独立的成本结构
+  // 简化模型：运营成本只基于客房收入计算，非客房收入视为额外GOP贡献
+  const roomAnnualCost = roomRevenue * totalCostRatio; // 客房运营成本（万元）
+  const annualCost = roomAnnualCost; // 年运营成本 = 客房运营成本（不含非客房部分）
+  const roomAnnualGop = roomRevenue * gopRatio; // 客房GOP（万元）
+  const annualGop = roomAnnualGop + nonRoomRevenue; // 总GOP = 客房GOP + 非客房全额贡献
+  const effectiveGopRatio = annualRev > 0 ? annualGop / annualRev : gopRatio; // 实际GOP率
+
   // 回本口径：静态回收期 = 投资 ÷ 年现金流
   // 年现金流 = GOP - 租金 - 所得税 + 折旧加回（折旧为非现金支出）
   // 所得税 = (GOP - 租金 - 折旧) × 25%，不低于0
@@ -1011,7 +1018,7 @@ function generateReport() {
     <div class="metric-card">
       <div class="mlabel">年经营毛利 GOP</div>
       <div class="mval">¥${Math.round(annualGop)}万</div>
-      <div class="msub">GOP率 ${(gopRatio*100).toFixed(1)}%&nbsp;|&nbsp;年现金流 ¥${Math.round(actualCashFlow)}万</div>
+      <div class="msub">GOP率 ${(effectiveGopRatio*100).toFixed(1)}%&nbsp;|&nbsp;年现金流 ¥${Math.round(actualCashFlow)}万</div>
     </div>
   `;
 
@@ -1070,7 +1077,7 @@ function generateReport() {
       <div class="pb-no" style="background:var(--red);">3</div>
       <div>
         <span class="pb-label">运营成本</span>
-        <span class="pb-formula">营收 × ${(totalCostRatio*100).toFixed(1)}%（含人工/能源/OTA/税等）</span>
+        <span class="pb-formula">客房收入 × ${(totalCostRatio*100).toFixed(1)}%（人工/能源/OTA/税等，不含非客房成本）</span>
       </div>
       <div class="pb-result" style="color:var(--red);">¥${annualCostFmt} 万</div>
 
@@ -1079,7 +1086,7 @@ function generateReport() {
       <div class="pb-no" style="background:var(--green);">4</div>
       <div>
         <span class="pb-label">年经营毛利 GOP</span>
-        <span class="pb-formula">营收 − 运营成本，GOP率 ${(gopRatio*100).toFixed(1)}%</span>
+        <span class="pb-formula">营收 − 运营成本，GOP率 ${(effectiveGopRatio*100).toFixed(1)}%（含非客房贡献）</span>
       </div>
       <div class="pb-result" style="color:var(--green);">¥${annualGopFmt} 万</div>
 
@@ -1187,7 +1194,7 @@ function generateReport() {
       </thead>
       <tbody>
         ${costItems.map(c => {
-          const annualAmount = annualRev * c.pct;
+          const annualAmount = roomRevenue * c.pct;
           const perRoomAmount = Math.round(adr * c.pct);
           return `<tr style="border-bottom:1px solid var(--border);">
             <td style="padding:7px 8px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c.color};margin-right:6px;vertical-align:middle;"></span>${c.name}</td>
@@ -1224,8 +1231,8 @@ function generateReport() {
   const costSummaryHtml = `
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
       ${costItems.map(c => {
-        const itemAnnual = annualRev * c.pct;
-        const itemPerRoom = Math.round((itemAnnual * 10000) / soldRoomsAnnual);
+        const itemAnnual = roomRevenue * c.pct;
+        const itemPerRoom = Math.round(adr * c.pct);
         return `
         <div style="flex:1;min-width:140px;background:#f9f8f5;border-radius:8px;padding:10px 12px;border-left:3px solid ${c.color};">
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px;">${c.name}</div>
@@ -1243,7 +1250,7 @@ function generateReport() {
         </div>
         <div style="text-align:right;">
           <span style="font-size:13px;color:var(--text-secondary);">GOP</span>
-          <span style="font-size:20px;font-weight:700;color:var(--green);margin-left:4px;">${(gopRatio*100).toFixed(1)}%</span>
+          <span style="font-size:20px;font-weight:700;color:var(--green);margin-left:4px;">${(effectiveGopRatio*100).toFixed(1)}%</span>
           <span style="font-size:12px;color:var(--text-muted);margin-left:4px;">¥${Math.round(annualGop)}万</span>
         </div>
       </div>
@@ -1307,7 +1314,7 @@ function generateReport() {
   // ---- 行业基准参考 ----
   const userInvestPerRoom = (investment * 10000) / rooms;
   const userRentRatio = annualRev > 0 ? (rent / annualRev * 100) : 0;
-  const userGopRate = gopRatio * 100;
+  const userGopRate = effectiveGopRatio * 100;
 
   const metrics = {
     investPerRoom: BENCHMARK_CASES.map(c => c.invest / c.rooms),
@@ -1397,7 +1404,7 @@ function generateReport() {
   const dailyGMV = (annualRev * 10000) / 365;
   const investPerRoom = (investment * 10000) / rooms;
   const cashPerRoom = actualCashFlow > 0 ? (actualCashFlow * 10000) / rooms : 0;
-  const minOccForBreakeven = annualRev > 0 ? ((rent / gopRatio) / (adr * rooms * 365 / 10000) * 100) : 0;
+  const minOccForBreakeven = (rent / (gopRatio + nonRoomPct / 100)) / (adr * rooms * 365 / 10000) * 100;
 
   document.getElementById('guideGrid').innerHTML = `
     <div class="guide-card">
