@@ -612,6 +612,11 @@ body {
       <input type="number" id="referenceOccupancy" placeholder="例如：70" min="30" max="100" step="0.1" value="72">
       <div class="unit">周边同类酒店年均入住率，参考STR报告或本地调研</div>
     </div>
+    <div class="form-item">
+      <label>非客房收入占比（%）</label>
+      <input type="number" id="nonRoomRevenuePct" placeholder="例如：5" min="0" max="30" step="0.1" value="5">
+      <div class="unit">餐饮、会议、停车场等非客房收入占客房收入的比例，中档酒店通常 3-8%</div>
+    </div>
   </div>
   <input type="hidden" id="totalInvestment" value="2000">
   <button class="gen-btn" onclick="generateReport()">生成投资测算报告</button>
@@ -739,11 +744,11 @@ body {
 const TIER_PARAMS = {
   1: { // 一线城市（北上广深）
     label: '一线城市', cities: '北上广深',
-    labor: 0.140, energy: 0.050, supplies: 0.038, maintenance: 0.028, marketingOther: 0.020, admin: 0.040, brandMgmt: 0.040,
+    labor: 0.125, energy: 0.045, supplies: 0.035, maintenance: 0.025, marketingOther: 0.015, admin: 0.035, brandMgmt: 0.040,
     otaPct: 0.42, corpPct: 0.25, walkinPct: 0.18, directPct: 0.15,
     revparDesc: '280–450 元', paybackDesc: '6–10 年', investPerRoomDesc: '20–30 万/间',
     paybackGood: 8, paybackFeasible: 10,
-    desc: '一线城市竞争激烈，人工成本占收入 13-15% 为各等级最高。OTA依赖度 40-45%，品牌管理费约 4%。RevPAR 全国最高但租金与人工双重挤压，运营成本率约 47-50%，GOP率通常 50-53%。'
+    desc: '一线城市竞争激烈，人工成本占收入 11-13%。OTA依赖度 40-45%，品牌管理费约 4%。运营成本率约 43-46%（高ADR项目可低至42%），GOP率通常 54-57%，非客房收入（餐饮/会议）贡献约 5-10%。'
   },
   2: { // 新一线城市（杭州/成都/武汉/南京等）
     label: '新一线城市', cities: '杭州/成都/武汉/南京等',
@@ -878,6 +883,7 @@ function generateReport() {
   const rent = parseFloat(document.getElementById('annualRent').value);
   const refPrice = parseFloat(document.getElementById('referencePrice').value);
   const refOcc = parseFloat(document.getElementById('referenceOccupancy').value);
+  const nonRoomPct = parseFloat(document.getElementById('nonRoomRevenuePct').value) || 0;
 
   const errors = [];
   if (!tier) errors.push('请选择城市等级');
@@ -908,16 +914,22 @@ function generateReport() {
   ];
   const totalCostRatio = costItems.reduce((s, c) => s + c.pct, 0);
   const gopRatio = 1 - totalCostRatio;
-  const annualDepreciation = investment / DEPRECIATION_YEARS;
 
   // 基于市场条件直接计算：以周边参考卖价和入住率为运营假设
   const adr = refPrice;
-  const annualRev = adr * rooms * 365 * (refOcc / 100) / 10000;
+  const roomRevenue = adr * rooms * 365 * (refOcc / 100) / 10000; // 客房收入（万元）
+  const nonRoomRevenue = roomRevenue * (nonRoomPct / 100); // 非客房收入（万元）
+  const annualRev = roomRevenue + nonRoomRevenue; // 营业总收入（万元）
   const annualGop = annualRev * gopRatio;
   const annualCost = annualRev * totalCostRatio;
-  // 回本口径：投资/(GOP-租金)，行业惯例不加折旧加回
-  const netOperatingIncome = annualGop - rent;
-  const actualCashFlow = netOperatingIncome; // 静态回收期口径
+  // 回本口径：静态回收期 = 投资 ÷ 年现金流
+  // 年现金流 = GOP - 租金 - 所得税 + 折旧加回（折旧为非现金支出）
+  // 所得税 = (GOP - 租金 - 折旧) × 25%，不低于0
+  const annualDepreciation = investment / DEPRECIATION_YEARS;
+  const ebit = annualGop - rent; // 息税前利润（扣除租金后）
+  const taxableIncome = Math.max(0, ebit - annualDepreciation);
+  const incomeTax = taxableIncome * 0.25;
+  const actualCashFlow = ebit - incomeTax; // 等价于 (GOP-租金)×0.75 + 折旧×0.25
   const actualPayback = actualCashFlow > 0 ? investment / actualCashFlow : Infinity;
 
   // ---- 先显示结果区域，确保后续图表在可见容器中渲染 ----
@@ -998,65 +1010,115 @@ function generateReport() {
     <div class="metric-card">
       <div class="mlabel">年经营毛利 GOP</div>
       <div class="mval">¥${Math.round(annualGop)}万</div>
-      <div class="msub">GOP率 ${(gopRatio*100).toFixed(1)}%&nbsp;|&nbsp;GOP-租金 ¥${Math.round(netOperatingIncome)}万/年</div>
+      <div class="msub">GOP率 ${(gopRatio*100).toFixed(1)}%&nbsp;|&nbsp;年现金流 ¥${Math.round(actualCashFlow)}万</div>
     </div>
   `;
 
   // ---- 回报周期测算过程 ----
   const soldRoomsAnnualCalc = Math.round(rooms * 365 * refOcc / 100);
-  const paybackSteps = [
-    { no: '①', label: '年售房量', formula: `${rooms}间 × 365天 × ${refOcc.toFixed(1)}%`, result: `${soldRoomsAnnualCalc.toLocaleString()} 间夜`, color: 'var(--blue)' },
-    { no: '②', label: '年度营收总额', formula: `¥${adr} × ${soldRoomsAnnualCalc.toLocaleString()}间夜 ÷ 10,000`, result: `¥${annualRev.toFixed(1)} 万`, color: 'var(--green)' },
-    { no: '③', label: '运营成本率', formula: costItems.map(c => c.pct).reduce((a,b) => a+b, 0).toFixed(3) + '（各项成本占比之和）', result: `${(totalCostRatio*100).toFixed(1)}%`, color: 'var(--red)' },
-    { no: '④', label: '年经营毛利 GOP', formula: `¥${annualRev.toFixed(1)}万 × ${((1-totalCostRatio)*100).toFixed(1)}%（GOP率）`, result: `¥${annualGop.toFixed(1)} 万`, color: 'var(--green)' },
-    { no: '⑤', label: '扣除年租金', formula: `¥${annualGop.toFixed(1)}万 − ¥${rent.toFixed(1)}万`, result: `¥${netOperatingIncome.toFixed(1)} 万/年`, highlight: true, color: 'var(--blue)' },
-    { no: '⑥', label: '回报周期', formula: `¥${investment.toLocaleString()}万 ÷ ¥${netOperatingIncome.toFixed(1)}万/年`, result: actualPayback === Infinity ? '∞（无法回收）' : `${actualPayback.toFixed(1)} 年`, final: true, color: 'var(--blue)' },
-  ];
+  const roomRevFmt = roomRevenue.toFixed(1);
+  const nonRoomFmt = nonRoomRevenue.toFixed(1);
+  const annualRevFmt = annualRev.toFixed(1);
+  const annualGopFmt = annualGop.toFixed(1);
+  const annualCostFmt = annualCost.toFixed(1);
+  const rentFmt = rent.toFixed(1);
+  const ebitFmt = ebit.toFixed(1);
+  const depFmt = annualDepreciation.toFixed(1);
+  const taxFmt = incomeTax.toFixed(1);
+  const cfFmt = actualCashFlow.toFixed(1);
+  const paybackFmt = actualPayback === Infinity ? '∞' : actualPayback.toFixed(1);
 
   document.getElementById('paybackCalcContent').innerHTML = `
     <style>
-      .calc-step { display:flex; align-items:flex-start; gap:12px; padding:12px 0; border-bottom:1px dashed var(--border); position:relative; }
-      .calc-step:last-child { border-bottom:none; }
-      .calc-step-no { flex-shrink:0; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#fff; }
-      .calc-step-body { flex:1; min-width:0; }
-      .calc-step-label { font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom:3px; }
-      .calc-step-formula { font-size:12px; color:var(--text-muted); font-family:'Menlo','Consolas',monospace; background:#f9f8f5; padding:4px 8px; border-radius:4px; display:inline-block; margin-bottom:4px; word-break:break-all; }
-      .calc-step-result { font-size:15px; font-weight:700; }
-      .calc-step-final { font-size:22px; }
-      .calc-step-arrow { position:absolute; left:13px; top:40px; width:2px; height:calc(100% - 28px); background:var(--border); }
-      .calc-step:last-child .calc-step-arrow { display:none; }
-      .payback-summary-box { background:linear-gradient(135deg,#f0f7f4,#f5f0e8); border-radius:12px; padding:16px 20px; margin-top:12px; }
+      .pb-grid { display:grid; grid-template-columns:26px 1fr auto; gap:6px 10px; align-items:center; font-size:13px; }
+      .pb-no { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; }
+      .pb-label { font-weight:600; color:var(--text); font-size:13px; }
+      .pb-formula { font-size:11px; color:var(--text-muted); font-family:'Menlo','Consolas',monospace; }
+      .pb-result { font-weight:700; text-align:right; white-space:nowrap; font-size:13px; }
+      .pb-line { grid-column:1 / -1; height:1px; background:rgba(0,0,0,0.06); }
+      .pb-final { grid-column:1 / -1; background:linear-gradient(135deg,#e8f2f6,#f0f7f4); border-radius:10px; padding:14px 16px; margin-top:6px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+      .pb-final-label { font-size:13px; font-weight:600; color:var(--text); }
+      .pb-final-val { font-size:26px; font-weight:700; color:var(--accent); }
+      .pb-final-unit { font-size:14px; font-weight:400; color:var(--text-muted); margin-left:2px; }
+      .pb-note { grid-column:1 / -1; font-size:11px; color:var(--text-muted); margin-top:8px; line-height:1.7; }
+      @media (max-width:480px) {
+        .pb-grid { gap:5px 8px; }
+        .pb-result { font-size:12px; }
+        .pb-final-val { font-size:22px; }
+      }
     </style>
-    ${paybackSteps.map(s => `
-      <div class="calc-step">
-        ${s.no !== '⑥' ? '<div class="calc-step-arrow"></div>' : ''}
-        <div class="calc-step-no" style="background:${s.color};">${s.no}</div>
-        <div class="calc-step-body">
-          <div class="calc-step-label">${s.label}</div>
-          <div class="calc-step-formula">${s.formula}</div>
-          <div class="calc-step-result ${s.final ? 'calc-step-final' : ''}" style="color:${s.color};">
-            ${s.highlight && netOperatingIncome > 0 ? '=&nbsp;' : ''}${s.result}
-            ${s.highlight && netOperatingIncome <= 0 ? '&nbsp;<span style="font-size:12px;font-weight:400;color:var(--red);">⚠ 年现金流为负</span>' : ''}
-          </div>
+    <div class="pb-grid">
+      <div class="pb-no" style="background:var(--blue);">1</div>
+      <div>
+        <span class="pb-label">年售房量</span>
+        <span class="pb-formula">${rooms}间 × 365天 × ${refOcc.toFixed(1)}%</span>
+      </div>
+      <div class="pb-result" style="color:var(--blue);">${soldRoomsAnnualCalc.toLocaleString()} 间夜</div>
+
+      <div class="pb-line"></div>
+
+      <div class="pb-no" style="background:var(--green);">2</div>
+      <div>
+        <span class="pb-label">年度营收</span>
+        <span class="pb-formula">客房¥${roomRevFmt}万 + 非客房¥${nonRoomFmt}万</span>
+      </div>
+      <div class="pb-result" style="color:var(--green);">¥${annualRevFmt} 万</div>
+
+      <div class="pb-line"></div>
+
+      <div class="pb-no" style="background:var(--red);">3</div>
+      <div>
+        <span class="pb-label">运营成本</span>
+        <span class="pb-formula">营收 × ${(totalCostRatio*100).toFixed(1)}%（含人工/能源/OTA/税等）</span>
+      </div>
+      <div class="pb-result" style="color:var(--red);">¥${annualCostFmt} 万</div>
+
+      <div class="pb-line"></div>
+
+      <div class="pb-no" style="background:var(--green);">4</div>
+      <div>
+        <span class="pb-label">年经营毛利 GOP</span>
+        <span class="pb-formula">营收 − 运营成本，GOP率 ${(gopRatio*100).toFixed(1)}%</span>
+      </div>
+      <div class="pb-result" style="color:var(--green);">¥${annualGopFmt} 万</div>
+
+      <div class="pb-line"></div>
+
+      <div class="pb-no" style="background:#b8690a;">5</div>
+      <div>
+        <span class="pb-label">扣租金后息税前利润</span>
+        <span class="pb-formula">GOP ¥${annualGopFmt}万 − 租金 ¥${rentFmt}万</span>
+      </div>
+      <div class="pb-result" style="color:#b8690a;">¥${ebitFmt} 万</div>
+
+      <div class="pb-line"></div>
+
+      <div class="pb-no" style="background:#8e44ad;">6</div>
+      <div>
+        <span class="pb-label">扣所得税 + 折旧加回</span>
+        <span class="pb-formula">(¥${ebitFmt}万 − ¥${depFmt}万折旧) × 25% = 所得税¥${taxFmt}万</span>
+      </div>
+      <div class="pb-result" style="color:#8e44ad;">¥${cfFmt} 万/年</div>
+
+      <div class="pb-final">
+        <div class="pb-final-label">静态回收期 = 总投资 ÷ 年现金流</div>
+        <div style="text-align:right;">
+          <div class="pb-final-val">${paybackFmt}<span class="pb-final-unit">年</span></div>
+          <div class="pb-formula">¥${investment.toLocaleString()}万 ÷ ¥${cfFmt}万/年</div>
         </div>
       </div>
-    `).join('')}
-    <div class="payback-summary-box">
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">📐 测算口径说明</div>
-      <div style="font-size:13px;color:var(--text-secondary);line-height:1.8;">
-        <b>静态回收期</b> = 前期总投入 ÷（年GOP − 年租金），行业惯例口径，<b>不加回折旧</b>。<br>
-        - 前期投入为一次性支出（装修、设备、<b>一次性加盟费</b>、开办费等），不计入年度运营成本<br>
-        - 运营成本仅含日常经营性支出（人工、能源、消耗品、OTA佣金、税、品牌管理费等）<br>
-        - GOP = 营收 − 运营成本（不含租金和折旧），再扣除租金后为实际可用于回本的现金流<br>
+
+      <div class="pb-note">
+        📐 <b>测算口径</b>：静态回收期 = 总投资 ÷ 年现金流。年现金流 = (GOP − 租金 − 折旧) × 75% + 折旧，即税后利润加回折旧（折旧为非现金支出）。所得税率按 25% 计算。前期投入按 ${DEPRECIATION_YEARS} 年直线折旧。非客房收入按用户输入比例计入总营收。
         ${actualPayback !== Infinity && actualPayback > tp.paybackFeasible ? '<br><span style="color:var(--red);">⚠ 当前回报周期超出该城市等级参考范围，建议优化营收结构或控制前期投入规模。</span>' : ''}
       </div>
     </div>
   `;
 
   // ---- 单房运营成本看板 ----
-  const perRoomCostNight = Math.round(adr * totalCostRatio);
   const soldRoomsAnnual = Math.round(rooms * 365 * refOcc / 100);
-  const perRoomCostAnnual = Math.round(annualCost * 10000 / soldRoomsAnnual);
+  const perRoomCostNight = Math.round((annualCost * 10000) / soldRoomsAnnual);
+  const perRoomCostAnnual = perRoomCostNight;
 
   // 阈值：基于ADR的成本占比
   const targetCostRatio = 0.50; // 理想：运营成本率 ≤50%（GOP≥50%）
@@ -1141,7 +1203,7 @@ function generateReport() {
         </tr>
       </tbody>
     </table>
-    <div style="font-size:11px;color:var(--text-muted);text-align:right;margin-bottom:4px;">单房日均 = 平均卖价 ¥${Math.round(adr)} × 该项占比</div>
+    <div style="font-size:11px;color:var(--text-muted);text-align:right;margin-bottom:4px;">单房日均 = 年运营成本 ¥${Math.round(annualCost)}万 ÷ 年售房 ${soldRoomsAnnual.toLocaleString()} 间夜</div>
 
     <div class="divider"></div>
     <div style="font-size:12px;color:var(--text-secondary);line-height:1.8;">
@@ -1160,13 +1222,16 @@ function generateReport() {
   document.getElementById('tierLabelCost').textContent = tp.label;
   const costSummaryHtml = `
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-      ${costItems.map(c => `
+      ${costItems.map(c => {
+        const itemAnnual = annualRev * c.pct;
+        const itemPerRoom = Math.round((itemAnnual * 10000) / soldRoomsAnnual);
+        return `
         <div style="flex:1;min-width:140px;background:#f9f8f5;border-radius:8px;padding:10px 12px;border-left:3px solid ${c.color};">
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px;">${c.name}</div>
           <div style="font-size:18px;font-weight:700;color:var(--text-primary);">${(c.pct*100).toFixed(1)}%</div>
-          <div style="font-size:11px;color:var(--text-muted);">¥${Math.round(annualRev * c.pct)}万/年 · ¥${Math.round(adr * c.pct)}/间/晚</div>
+          <div style="font-size:11px;color:var(--text-muted);">¥${Math.round(itemAnnual)}万/年 · ¥${itemPerRoom}/间/晚</div>
         </div>
-      `).join('')}
+      `}).join('')}
     </div>
     <div style="background:linear-gradient(135deg,#f0f7f4,#f5f0e8);border-radius:10px;padding:14px 16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
@@ -1182,7 +1247,7 @@ function generateReport() {
         </div>
       </div>
       <div style="font-size:11px;color:var(--text-muted);margin-top:8px;border-top:1px dashed var(--border);padding-top:8px;">
-        ⚠️ OTA佣金 = 15%佣率 × ${(tp.otaPct*100).toFixed(0)}%OTA渠道占比 = ${(otaCostPct*100).toFixed(1)}% · 营业税${(TAX_RATE*100).toFixed(1)}% · 品牌管理费4%·月确认 · 租金和折旧不计入运营成本
+        ⚠️ OTA佣金 = 15%佣率 × ${(tp.otaPct*100).toFixed(0)}%OTA渠道占比 = ${(otaCostPct*100).toFixed(1)}% · 营业税${(TAX_RATE*100).toFixed(1)}% · 品牌管理费4%·月确认 · 非客房收入${nonRoomPct.toFixed(1)}% · 租金和折旧不计入运营成本
       </div>
     </div>
   `;
