@@ -1182,13 +1182,21 @@ function generateReport() {
       <div class="cost-gauge-marker" style="left:${markerPos}%;background:${costLevelColor};box-shadow:0 0 6px ${costLevelColor};"></div>
     </div>
 
-    <!-- 刻度标注（用金额，不用百分比） -->
-    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);padding:0 4px;margin-top:4px;">
-      <span>¥0</span>
-      <span style="color:#2d6a4f;font-weight:600;">≤¥${idealYuan} 优秀</span>
-      <span style="color:#b8690a;font-weight:600;">¥${warnYuan} 偏高</span>
-      <span style="color:#c0392b;font-weight:600;">¥${dangerYuan} 危险</span>
-      <span>¥${adr}(卖价)</span>
+    <!-- 刻度标注：绝对定位与比例条区间精确对齐 -->
+    <div style="position:relative;height:30px;margin-top:4px;">
+      <!-- 刻度竖线 -->
+      <div style="position:absolute;left:0;top:0;width:1px;height:8px;background:var(--border);"></div>
+      <div style="position:absolute;left:${idealPct*100}%;top:0;width:1px;height:8px;background:#2d6a4f;"></div>
+      <div style="position:absolute;left:${warnPct*100}%;top:0;width:1px;height:8px;background:#b8690a;"></div>
+      <div style="position:absolute;left:${dangerPct*100}%;top:0;width:1px;height:8px;background:#c0392b;"></div>
+      <div style="position:absolute;left:100%;top:0;width:1px;height:8px;background:var(--border);"></div>
+      <!-- 左右端点 -->
+      <span style="position:absolute;left:0;top:10px;transform:translateX(-20%);font-size:10px;color:var(--text-muted);">¥0</span>
+      <span style="position:absolute;left:100%;top:10px;transform:translateX(-80%);font-size:10px;color:var(--text-muted);white-space:nowrap;">¥${adr}(卖价)</span>
+      <!-- 区间标签：放在各区间的中央位置 -->
+      <span style="position:absolute;left:${idealPct*50}%;top:20px;transform:translateX(-50%);font-size:9px;font-weight:600;color:#2d6a4f;white-space:nowrap;">≤¥${idealYuan} 优秀</span>
+      <span style="position:absolute;left:${(idealPct+warnPct)/2*100}%;top:20px;transform:translateX(-50%);font-size:9px;font-weight:600;color:#b8690a;white-space:nowrap;">¥${warnYuan} 偏高</span>
+      <span style="position:absolute;left:${(warnPct+dangerPct)/2*100}%;top:20px;transform:translateX(-50%);font-size:9px;font-weight:600;color:#c0392b;white-space:nowrap;">¥${dangerYuan} 危险</span>
     </div>
     <div style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:2px;">
       ▲ 当前 ¥${perRoomCostNight} 占卖价 ${(perRoomCostNight/adr*100).toFixed(0)}%，每1元卖价中 ${(perRoomCostNight/adr*100).toFixed(0)}分用于运营成本
