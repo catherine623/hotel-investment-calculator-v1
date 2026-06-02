@@ -745,35 +745,35 @@ body {
 const TIER_PARAMS = {
   1: { // 一线城市（北上广深）
     label: '一线城市', cities: '北上广深',
-    labor: 0.125, energy: 0.045, supplies: 0.035, maintenance: 0.025, marketingOther: 0.015, admin: 0.035, brandMgmt: 0.040,
+    labor: 0.135, energy: 0.048, supplies: 0.036, maintenance: 0.026, marketingOther: 0.018, admin: 0.038, brandMgmt: 0.040,
     otaPct: 0.42, corpPct: 0.25, walkinPct: 0.18, directPct: 0.15,
     revparDesc: '280–450 元', paybackDesc: '6–10 年', investPerRoomDesc: '20–30 万/间',
     paybackGood: 8, paybackFeasible: 10,
-    desc: '一线城市竞争激烈，人工成本占收入 11-13%。OTA依赖度 40-45%，品牌管理费约 4%。运营成本率约 43-46%（高ADR项目可低至42%），GOP率通常 54-57%，非客房收入（餐饮/会议）贡献约 5-10%。'
+    desc: '一线城市竞争激烈，人工成本占收入 12-14% 为各等级最高。OTA依赖度 40-45%，品牌管理费约 4%。运营成本率约 45-47%，GOP率通常 53-55%，非客房收入（餐饮/会议）贡献约 5-10%。'
   },
   2: { // 新一线城市（杭州/成都/武汉/南京等）
     label: '新一线城市', cities: '杭州/成都/武汉/南京等',
-    labor: 0.120, energy: 0.045, supplies: 0.036, maintenance: 0.026, marketingOther: 0.018, admin: 0.035, brandMgmt: 0.040,
+    labor: 0.122, energy: 0.045, supplies: 0.035, maintenance: 0.026, marketingOther: 0.017, admin: 0.036, brandMgmt: 0.040,
     otaPct: 0.40, corpPct: 0.28, walkinPct: 0.18, directPct: 0.14,
     revparDesc: '200–350 元', paybackDesc: '5–8 年', investPerRoomDesc: '16–24 万/间',
     paybackGood: 6, paybackFeasible: 8,
-    desc: '新一线城市商务+旅游双轮驱动，人工成本约 11-13%。运营成本率约 44-47%（亚朵档 ADR400 对应单房成本约 176-188 元/晚），GOP率参考 53-56%，当前中档酒店投资性价比最优区域。'
+    desc: '新一线城市商务+旅游双轮驱动，人工成本约 11-13%。运营成本率约 43-45%（亚朵档 ADR400 对应单房成本约 172-180 元/晚），GOP率参考 55-57%，当前中档酒店投资性价比最优区域。'
   },
   3: { // 二线城市（长沙/合肥/昆明/厦门/常州/青岛等）
     label: '二线城市', cities: '长沙/合肥/昆明/厦门/常州/青岛等',
-    labor: 0.105, energy: 0.044, supplies: 0.034, maintenance: 0.024, marketingOther: 0.014, admin: 0.032, brandMgmt: 0.040,
+    labor: 0.115, energy: 0.046, supplies: 0.034, maintenance: 0.025, marketingOther: 0.015, admin: 0.035, brandMgmt: 0.040,
     otaPct: 0.37, corpPct: 0.30, walkinPct: 0.23, directPct: 0.10,
     revparDesc: '150–280 元', paybackDesc: '4–7 年', investPerRoomDesc: '13–21 万/间',
     paybackGood: 5, paybackFeasible: 7,
-    desc: '二线城市运营成本中等，协议客户与散客占比合计超 50%。运营成本率约 43-46%（全季档 ADR300 对应单房成本约 129-138 元/晚），品牌管理费约 4%，租金谈判为关键成功因素，GOP率参考 54-57%。'
+    desc: '二线城市运营成本中等，协议客户与散客占比合计超 50%。运营成本率约 41-43%（全季档 ADR300 对应单房成本约 123-129 元/晚），品牌管理费约 4%，租金谈判为关键成功因素，GOP率参考 57-59%。'
   },
   4: { // 三线及以下
     label: '三线及以下', cities: '地级市/县城',
-    labor: 0.095, energy: 0.040, supplies: 0.032, maintenance: 0.022, marketingOther: 0.012, admin: 0.030, brandMgmt: 0.040,
+    labor: 0.108, energy: 0.043, supplies: 0.034, maintenance: 0.023, marketingOther: 0.013, admin: 0.033, brandMgmt: 0.040,
     otaPct: 0.32, corpPct: 0.28, walkinPct: 0.30, directPct: 0.10,
     revparDesc: '100–200 元', paybackDesc: '4–8 年', investPerRoomDesc: '8–15 万/间',
     paybackGood: 5, paybackFeasible: 8,
-    desc: '三线城市投资最小但需求波动较大，OTA依赖度最低（约 32%），散客占比最高。运营成本率约 41-44%（ADR200 对应单房成本约 82-88 元/晚），人工成本约 9-10%，需重点关注本地人口流动和大型项目落地情况。'
+    desc: '三线城市投资最小但需求波动较大，OTA依赖度最低（约 32%），散客占比最高。运营成本率约 39-41%（ADR200 对应单房成本约 78-82 元/晚），人工成本约 10-11%，需重点关注本地人口流动和大型项目落地情况。'
   }
 };
 
@@ -888,7 +888,7 @@ function generateReport() {
 
   const errors = [];
   if (!tier) errors.push('请选择城市等级');
-  if (!investment || investment < 100) errors.push('前期总投入需 ≥ 100 万元');
+  if (!investment || investment < 1) errors.push('前期总投入需 ≥ 1 万元');
   if (!rooms || rooms < 10) errors.push('房间量需 ≥ 10 间');
   if (isNaN(rent) || rent < 0) errors.push('请输入有效的年租金（≥ 0）');
   if (!refPrice || refPrice < 50) errors.push('周边参考卖价需 ≥ 50 元');
@@ -1109,7 +1109,7 @@ function generateReport() {
       <div class="pb-result" style="color:#8e44ad;">¥${cfFmt} 万/年</div>
 
       <div class="pb-final">
-        <div class="pb-final-label">静态回收期 = 总投资 ÷ 年现金流</div>
+        <div class="pb-final-label">静态回收期 = 总投资 ÷ 年现金流<br><span style="font-size:12px;font-weight:400;color:var(--text-muted);">年GOP利润 ¥${annualGopFmt}万</span></div>
         <div style="text-align:right;">
           <div class="pb-final-val">${paybackFmt}<span class="pb-final-unit">年</span></div>
           <div class="pb-formula">¥${investment.toLocaleString()}万 ÷ ¥${cfFmt}万/年</div>
@@ -1287,7 +1287,6 @@ function generateReport() {
     });
     monthlyHtml += `<div class="month-col">
       <div class="month-stack" style="height:${Math.round(totalHeightPx)}px;">${segHtml}</div>
-      <div class="month-val">¥${Math.round(mthRev)}</div>
       <div class="month-label">${SEASON_LABELS[i]}</div>
     </div>`;
   }
