@@ -468,7 +468,7 @@ body {
 
 <!-- ==================== Header ==================== -->
 <div class="page-header">
-  <h1>酒店投资回报计算器 <span class="usage-badge" id="usageBadge" title="本设备使用次数">📊 --</span></h1>
+  <h1>酒店投资回报计算器 <span class="usage-badge" id="usageBadge" title="全网累计使用次数">📊 加载中...</span></h1>
   <div class="subtitle">基于城市等级与市场数据的投资回收路径测算</div>
 </div>
 
@@ -1490,23 +1490,55 @@ function generateReport() {
 }
 
 // ============================================================
-// 使用次数统计（localStorage，本设备累计）
+// 全局使用次数统计（CounterAPI.dev，所有设备/用户共享）
 // ============================================================
-function bumpUsage() {
-  try {
-    let count = parseInt(localStorage.getItem('hotelCalcUsage') || '0', 10);
-    count += 1;
-    localStorage.setItem('hotelCalcUsage', count);
-    document.getElementById('usageBadge').textContent = '📊 ' + count + ' 次';
-  } catch(e) { /* ignore localStorage errors */ }
+const COUNTER_NS = 'hotel-invest-calc';
+const COUNTER_KEY = 'total-usage';
+const COUNTER_URL_UP = `https://api.counterapi.dev/v1/${COUNTER_NS}/${COUNTER_KEY}/up`;
+const COUNTER_URL_GET = `https://api.counterapi.dev/v1/${COUNTER_NS}/${COUNTER_KEY}`;
+
+function updateUsageBadge(count) {
+  if (count == null || isNaN(count)) {
+    document.getElementById('usageBadge').textContent = '📊 --';
+    return;
+  }
+  document.getElementById('usageBadge').textContent = '📊 ' + count.toLocaleString() + ' 次';
 }
 
-(function initUsage() {
-  try {
-    const count = parseInt(localStorage.getItem('hotelCalcUsage') || '0', 10);
-    document.getElementById('usageBadge').textContent = '📊 ' + count + ' 次';
-  } catch(e) { document.getElementById('usageBadge').textContent = '📊 --'; }
+// 页面加载时获取全局使用次数
+(function initGlobalUsage() {
+  fetch(COUNTER_URL_GET)
+    .then(r => r.json())
+    .then(data => { if (data && data.count != null) updateUsageBadge(data.count); })
+    .catch(() => {
+      // API 不可用时从 localStorage 读取上次缓存值
+      try {
+        const cached = parseInt(localStorage.getItem('hotelCalcGlobalUsage') || '0', 10);
+        if (cached > 0) updateUsageBadge(cached);
+      } catch(e) {}
+    });
 })();
+
+// 生成报告时 +1 并更新显示
+function bumpUsage() {
+  fetch(COUNTER_URL_UP)
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.count != null) {
+        updateUsageBadge(data.count);
+        try { localStorage.setItem('hotelCalcGlobalUsage', data.count); } catch(e) {}
+      }
+    })
+    .catch(() => {
+      // API 不可用时 fallback 到 localStorage 本地计数
+      try {
+        let count = parseInt(localStorage.getItem('hotelCalcUsage') || '0', 10);
+        count += 1;
+        localStorage.setItem('hotelCalcUsage', count);
+        updateUsageBadge(count);
+      } catch(e) {}
+    });
+}
 
 // ============================================================
 // 保存报告为图片
