@@ -1123,62 +1123,75 @@ function generateReport() {
     </div>
   `;
 
-  // ---- 单房运营成本看板 ----
+  // ---- 单房运营成本看板（简化直观版）----
   const soldRoomsAnnual = Math.round(rooms * 365 * refOcc / 100);
   const perRoomCostNight = Math.round((annualCost * 10000) / soldRoomsAnnual);
   const perRoomCostAnnual = perRoomCostNight;
 
-  // 阈值：基于ADR的成本占比
-  const targetCostRatio = 0.50; // 理想：运营成本率 ≤50%（GOP≥50%）
-  const warnCostRatio = 0.55;   // 预警：运营成本率 ≤55%
-  const dangerCostRatio = 0.60;  // 危险：运营成本率 >60%
-  const targetCostYuan = Math.round(adr * targetCostRatio);
-  const warnCostYuan = Math.round(adr * warnCostRatio);
-  const dangerCostYuan = Math.round(adr * dangerCostRatio);
+  // 阈值：直接用金额（= ADR × 比例），用户一看就懂
+  const idealPct = 0.50;   // 理想：单房成本 ≤ 50% ADR（即GOP率≥50%）
+  const warnPct = 0.58;    // 预警：单房成本 > 50% ADR
+  const dangerPct = 0.65;  // 危险：单房成本 > 65% ADR
+  const idealYuan = Math.round(adr * idealPct);
+  const warnYuan = Math.round(adr * warnPct);
+  const dangerYuan = Math.round(adr * dangerPct);
 
-  let costStatusText, costStatusClass, costStatusIcon, markerColor;
-  if (totalCostRatio <= targetCostRatio) {
-    costStatusText = '优秀'; costStatusClass = 'feasible'; costStatusIcon = '✅'; markerColor = 'var(--green)';
-  } else if (totalCostRatio <= warnCostRatio) {
-    costStatusText = '良好'; costStatusClass = 'challenging'; costStatusIcon = '🔶'; markerColor = 'var(--amber)';
+  let costLevel, costLevelColor, costLevelBg, costLevelIcon;
+  if (perRoomCostNight <= idealYuan) {
+    costLevel = '优秀'; costLevelColor = '#2d6a4f'; costLevelBg = '#d8f3dc'; costLevelIcon = '✅';
+  } else if (perRoomCostNight <= warnYuan) {
+    costLevel = '良好'; costLevelColor = '#b8690a'; costLevelBg = '#fef3cd'; costLevelIcon = '🔶';
+  } else if (perRoomCostNight <= dangerYuan) {
+    costLevel = '偏高'; costLevelColor = '#c0392b'; costLevelBg = '#fde2e2'; costLevelIcon = '⚠️';
   } else {
-    costStatusText = '偏高'; costStatusClass = 'difficult'; costStatusIcon = '🔴'; markerColor = 'var(--red)';
+    costLevel = '危险'; costLevelColor = '#922b21'; costLevelBg = '#f5b7b1'; costLevelIcon = '🔴';
   }
 
-  const BAR_SCALE = 0.70; // 条形图刻度范围 0-70%
-  const barTargetW = (targetCostRatio / BAR_SCALE * 100).toFixed(1);
-  const barWarnW = ((warnCostRatio - targetCostRatio) / BAR_SCALE * 100).toFixed(1);
-  const barDangerW = ((dangerCostRatio - warnCostRatio) / BAR_SCALE * 100).toFixed(1);
-  const barMarkerPos = Math.min(totalCostRatio / BAR_SCALE * 100, 100).toFixed(1);
+  // 简单横向参照条：0元 → ADR，三色区间 + 当前位置标记
+  const markerPos = Math.min((perRoomCostNight / adr) * 100, 100);
 
   document.getElementById('perRoomCostContent').innerHTML = `
-    <div style="text-align:center;margin-bottom:16px;">
-      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">当前项目单房日均运营成本</div>
-      <div style="font-size:42px;font-weight:700;color:${markerColor};line-height:1.1;">
-        ¥${perRoomCostNight}<span style="font-size:16px;font-weight:400;color:var(--text-secondary);"> 元/间/晚</span>
+    <style>
+      .cost-gauge { position:relative; height:28px; border-radius:14px; margin:14px 0 8px; overflow:hidden; }
+      .cost-gauge-seg { position:absolute; top:0; height:100%; }
+      .cost-gauge-marker { position:absolute; top:0; bottom:0; width:3px; border-radius:2px; transform:translateX(-50%); z-index:2; }
+      .cost-gauge-label { position:absolute; top:50%; transform:translate(-50%,-50%); font-size:10px; font-weight:600; white-space:nowrap; z-index:1; }
+    </style>
+
+    <!-- 核心数据 -->
+    <div style="text-align:center;margin-bottom:12px;">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">当前项目 · 每间已售客房日均运营成本</div>
+      <div style="font-size:44px;font-weight:700;color:${costLevelColor};line-height:1.1;">
+        ¥${perRoomCostNight}<span style="font-size:14px;font-weight:400;color:var(--text-secondary);"> /间/晚</span>
       </div>
-      <div style="font-size:13px;margin-top:8px;">
-        <span class="hero-verdict ${costStatusClass}">${costStatusIcon} ${costStatusText}</span>
+      <div style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:4px 14px;border-radius:20px;background:${costLevelBg};font-size:13px;font-weight:600;color:${costLevelColor};">
+        ${costLevelIcon} ${costLevel}（成本率 ${(totalCostRatio*100).toFixed(1)}%，GOP率 ${(gopRatio*100).toFixed(1)}%）
       </div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">
-        年售房 <b>${soldRoomsAnnual.toLocaleString()}</b> 间夜 · 年运营成本 ¥${Math.round(annualCost)}万 · 均摊每间已售客房 ¥${perRoomCostAnnual}元/晚
+      <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">
+        年售房 <b>${soldRoomsAnnual.toLocaleString()}</b> 间夜 · 年运营成本 ¥${Math.round(annualCost)}万
       </div>
     </div>
 
-    <!-- 可视化条形图 -->
-    <div style="position:relative;height:32px;background:#f5f3ef;border-radius:16px;margin:16px 0 6px;overflow:hidden;">
-      <div style="position:absolute;left:0;top:0;height:100%;width:${barTargetW}%;background:rgba(45,106,79,0.12);border-radius:16px 0 0 16px;"></div>
-      <div style="position:absolute;left:${barTargetW}%;top:0;height:100%;width:${barWarnW}%;background:rgba(184,105,10,0.10);"></div>
-      <div style="position:absolute;left:${(parseFloat(barTargetW) + parseFloat(barWarnW)).toFixed(1)}%;top:0;height:100%;width:${barDangerW}%;background:rgba(192,57,43,0.10);border-radius:0 16px 16px 0;"></div>
-      <div style="position:absolute;left:${barMarkerPos}%;top:3px;bottom:3px;width:4px;background:${markerColor};border-radius:2px;transform:translateX(-50%);box-shadow:0 0 4px ${markerColor};"></div>
-      <div style="position:absolute;left:${barMarkerPos}%;top:-2px;transform:translateX(-50%);font-size:10px;font-weight:700;color:${markerColor};white-space:nowrap;">▼ ${(totalCostRatio*100).toFixed(1)}%</div>
+    <!-- 参照条：0 → ADR，直观看位置 -->
+    <div class="cost-gauge" style="background:#f0eeea;">
+      <div class="cost-gauge-seg" style="left:0;width:${idealPct*100}%;background:rgba(45,106,79,0.10);"></div>
+      <div class="cost-gauge-seg" style="left:${idealPct*100}%;width:${(warnPct-idealPct)*100}%;background:rgba(184,105,10,0.08);"></div>
+      <div class="cost-gauge-seg" style="left:${warnPct*100}%;width:${(dangerPct-warnPct)*100}%;background:rgba(192,57,43,0.08);"></div>
+      <div class="cost-gauge-seg" style="left:${dangerPct*100}%;width:${(1-dangerPct)*100}%;background:rgba(146,43,33,0.12);border-radius:0 14px 14px 0;"></div>
+      <!-- 标记当前成本位置 -->
+      <div class="cost-gauge-marker" style="left:${markerPos}%;background:${costLevelColor};box-shadow:0 0 6px ${costLevelColor};"></div>
     </div>
-    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);padding:0 2px;">
-      <span>0%</span>
-      <span style="color:var(--green);font-weight:500;">理想 ≤${targetCostYuan}元</span>
-      <span style="color:var(--amber);font-weight:500;">预警 ${warnCostYuan}元</span>
-      <span style="color:var(--red);font-weight:500;">危险 ≥${dangerCostYuan}元</span>
-      <span>¥${Math.round(adr)}元(ADR)</span>
+
+    <!-- 刻度标注（用金额，不用百分比） -->
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);padding:0 4px;margin-top:4px;">
+      <span>¥0</span>
+      <span style="color:#2d6a4f;font-weight:600;">≤¥${idealYuan} 优秀</span>
+      <span style="color:#b8690a;font-weight:600;">¥${warnYuan} 偏高</span>
+      <span style="color:#c0392b;font-weight:600;">¥${dangerYuan} 危险</span>
+      <span>¥${adr}(卖价)</span>
+    </div>
+    <div style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:2px;">
+      ▲ 当前 ¥${perRoomCostNight} 占卖价 ${(perRoomCostNight/adr*100).toFixed(0)}%，每1元卖价中 ${(perRoomCostNight/adr*100).toFixed(0)}分用于运营成本
     </div>
 
     <div class="divider"></div>
@@ -1215,14 +1228,13 @@ function generateReport() {
 
     <div class="divider"></div>
     <div style="font-size:12px;color:var(--text-secondary);line-height:1.8;">
-      <b>解读：</b>单房运营成本 = 平均卖价 × 运营成本率（${(totalCostRatio*100).toFixed(1)}%）。<br>
-      ${totalCostRatio <= targetCostRatio
-        ? `当前成本控制处于<strong style="color:var(--green);">优秀水平</strong>，单房成本 ¥${perRoomCostNight} 低于理想线 ¥${targetCostYuan}，GOP空间充裕。`
-        : totalCostRatio <= warnCostRatio
-          ? `当前成本控制处于<strong style="color:var(--amber);">良好水平</strong>，单房成本 ¥${perRoomCostNight} 在理想线 ¥${targetCostYuan} 和预警线 ¥${warnCostYuan} 之间，仍有优化空间。`
-          : `当前成本控制处于<strong style="color:var(--red);">偏高水平</strong>，单房成本 ¥${perRoomCostNight} 已超过预警线 ¥${warnCostYuan}，建议重点关注人工和OTA佣金优化。`
-      }<br>
-      <span style="color:var(--text-muted);">提示：降低单房成本可通过提升入住率（分摊固定成本）、降低OTA渠道占比（减少佣金）、或优化人工配置实现。</span>
+      <b>解读：</b>当前单房成本 ¥${perRoomCostNight}，意味着每卖出一间房，¥${adr} 的收入中有 ¥${perRoomCostNight}（${(perRoomCostNight/adr*100).toFixed(0)}%）用于运营支出，剩余 ¥${adr - perRoomCostNight}（${((1-perRoomCostNight/adr)*100).toFixed(0)}%）为毛利空间（未扣租金）。<br>
+      ${perRoomCostNight <= idealYuan
+        ? `成本控制处于<strong style="color:#2d6a4f;">优秀水平</strong>，单房成本低于 ¥${idealYuan}（卖价的50%），GOP空间充裕，利润健康。`
+        : perRoomCostNight <= warnYuan
+          ? `成本控制处于<strong style="color:#b8690a;">良好水平</strong>，单房成本在 ¥${idealYuan}~¥${warnYuan} 之间，仍有优化空间，可关注降低OTA佣金或优化人工配置。`
+          : `成本控制处于<strong style="color:#c0392b;">偏高水平</strong>，单房成本超过 ¥${warnYuan}，需重点关注人工、OTA佣金等大项支出，否则盈利空间将被严重压缩。`
+      }
     </div>
   `;
 
@@ -1283,7 +1295,12 @@ function generateReport() {
     segs.forEach(s => {
       const segHeightPx = Math.max(1, Math.round(totalHeightPx * s.pct));
       const segRev = (mthRev * s.pct).toFixed(0);
-      segHtml += `<div class="month-stack-segment" style="height:${segHeightPx}px;background:${chColors[s.key]};" title="${chLabels[s.key]}: ¥${segRev}万"></div>`;
+      const pctLabel = (s.pct * 100).toFixed(0);
+      // 只在色块高度≥20px时显示占比文字，避免太挤
+      const showLabel = segHeightPx >= 20;
+      segHtml += `<div class="month-stack-segment" style="height:${segHeightPx}px;background:${chColors[s.key]};" title="${chLabels[s.key]}: ¥${segRev}万 (${pctLabel}%)">
+        ${showLabel ? `<span style="display:block;text-align:center;line-height:${segHeightPx}px;font-size:9px;color:#fff;font-weight:600;opacity:0.9;">${pctLabel}%</span>` : ''}
+      </div>`;
     });
     monthlyHtml += `<div class="month-col">
       <div class="month-stack" style="height:${Math.round(totalHeightPx)}px;">${segHtml}</div>
