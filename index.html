@@ -522,7 +522,12 @@ body {
   .metric-card .mval { font-size: 17px; }
 
   /* Monthly grid */
-  .monthly-grid { height: 140px; gap: 2px; }
+  .monthly-grid { height: auto; gap: 2px; }
+  .monthly-grid .monthly-row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    height: 130px;
+  }
   .month-label { font-size: 8px; }
 
   /* Mix grid */
@@ -774,6 +779,11 @@ body {
   <!-- 关键指标行 -->
   <div class="metric-row" id="metricRow"></div>
 
+  <!-- 度假酒店免责声明（动态显示） -->
+  <div id="resortDisclaimer" style="display:none;text-align:center;padding:10px 16px;margin-bottom:8px;border-radius:8px;background:linear-gradient(135deg,#fff8e1,#fff3cd);font-size:13px;font-weight:600;color:#b8690a;">
+    ⚠️ 度假酒店成本和收入波动大。测算仅供参考
+  </div>
+
   <!-- 回报周期测算过程 -->
   <div class="card" id="paybackCalcCard">
     <div class="card-header" style="cursor:default;">
@@ -881,18 +891,22 @@ function switchHotelMode(mode) {
   const hint = document.getElementById('modeHint');
   const nonRoomHint = document.getElementById('nonRoomHint');
   const nonRoomInput = document.getElementById('nonRoomRevenuePct');
+  const resortDisclaimer = document.getElementById('resortDisclaimer');
 
   if (mode === 'resort') {
     hint.innerHTML = '🏖 <b>景区度假模式</b>：OTA依赖度高、旅行社团体客占比大、非客房收入贡献显著、季节性波动强';
     nonRoomHint.textContent = '度假酒店非客房收入较高（餐饮/活动/SPA），通常 20-25%';
     if (parseFloat(nonRoomInput.value) < 20) nonRoomInput.value = 20;
+    if (resortDisclaimer) resortDisclaimer.style.display = '';
   } else if (mode === 'esports') {
-    hint.innerHTML = '🎮 <b>电竞酒店模式</b>：私域流量占比高、设备投入大、能耗显著高于普通酒店、非客房收入(零食/外设)';
+    hint.innerHTML = '🎮 <b>电竞酒店模式</b>：OTA渠道主导（约70%）、设备投入大（单房10-15万）、能耗显著高于普通酒店（24h高功耗PC）、非客房收入(零食/外设)';
     nonRoomHint.textContent = '电竞酒店非客房收入（零食/外设/饮料），通常 10-15%';
     if (parseFloat(nonRoomInput.value) < 10) nonRoomInput.value = 10;
+    if (resortDisclaimer) resortDisclaimer.style.display = 'none';
   } else {
     hint.textContent = '标准中档商务酒店，适用于城市商务及旅游市场';
     nonRoomHint.textContent = '餐饮、会议、停车场等非客房收入占客房收入的比例，中档酒店通常 3-8%';
+    if (resortDisclaimer) resortDisclaimer.style.display = 'none';
   }
 }
 
@@ -945,15 +959,25 @@ const TIER_PARAMS = {
 // ============================================================
 const RESORT_OVERRIDES = {
   label: '景区度假',
-  desc: '景区度假酒店参考雅致酒店实际运营数据：ADR通常800-900元/间，首年入住率50-52%、成熟期60-66%，单房投入25-28万，单房运营成本232-260元/间/夜。非客房收入（餐饮/SPA/活动）贡献显著，可达客房收入的20-25%。OTA依赖度高（约55%），淡旺季差异极大。',
+  desc: '景区度假酒店参考雅致酒店实际运营数据并上浮调整：ADR通常800-900元/间，首年入住率50-52%、成熟期60-66%，单房投入25-28万，非客房收入（餐饮/SPA/活动）贡献显著，可达客房收入的20-25%。OTA依赖度高（约55%），淡旺季差异极大。',
   // 渠道覆盖（旺季基准）
   otaPct: 0.55, corpPct: 0.05, groupPct: 0.20, walkinPct: 0.10, directPct: 0.10,
-  // 成本覆盖（增量，非替代）
-  energyDelta: 0.020,     // 能源+2.0%（泳池恒温、SPA、大面积公区空调）
-  maintenanceDelta: 0.010, // 维护+1%（园林、游乐设施、水系统）
-  staffRatioDelta: 0.08,   // 人房比+0.08（餐饮/SPA/活动/安保/管家，旺季临时工多）
-  brandMgmtOverride: 0.050, // 品牌管理费5%（度假品牌溢价较高）
-  // 非客房收入建议（参考微山岛项目：餐饮占客房收入约23%）
+  // 成本参数绝对值override（基于雅致运营成本明细上浮10-15%，ADR基准800元）
+  // 人工约95-108元/间夜→12.7%，能源约27-33元→3.8%，消耗品约34-42元→4.7%
+  // 维修约2.2-3.8元→0.4%，洗涤约10-15元→1.6%，营销+管理+物业合计约5.0%
+  energyOverride: 0.038,        // 能源3.8%（泳池恒温、SPA、大面积公区空调）
+  suppliesOverride: 0.047,      // 消耗品4.7%（含洗涤费，度假酒店布草消耗高）
+  maintenanceOverride: 0.004,  // 维修0.4%（园林、游乐设施、水系统）
+  marketingOtherOverride: 0.030, // 市场+物业+绿化+其他 3.0%
+  adminOverride: 0.020,         // 管理费用 2.0%
+  // 人房比绝对值0.4（餐饮/SPA/活动/安保/管家，旺季临时工多）
+  staffRatioOverride: 0.40,
+  brandMgmtOverride: 0.050,    // 品牌管理费5%
+  // 度假酒店单房运营成本参考区间（元/间/夜），用于UI展示
+  costPerRoomRange: [190, 260],
+  // 度假酒店投资回收期浮动范围（±年数）
+  paybackFloatYears: 2.0,
+  // 非客房收入建议
   nonRoomDefault: 20,
   // 季节性因子覆盖（度假酒店季节性极强，暑假/国庆为绝对旺季）
   seasonalFactors: [0.45, 0.55, 0.75, 0.95, 1.25, 1.05, 1.35, 1.40, 0.90, 1.30, 0.60, 0.50]
@@ -961,15 +985,15 @@ const RESORT_OVERRIDES = {
 
 const ESPORT_OVERRIDES = {
   label: '电竞酒店',
-  desc: '电竞酒店核心客群18-30岁（占比78%），OTA渠道近年快速提升，同时私域流量（社群/抖音/微信）仍占重要份额。设备投入大（单房电竞设备3-4.5万），能源消耗显著高于普通酒店（24h高功耗PC+散热）。',
-  // 渠道覆盖
-  otaPct: 0.45, corpPct: 0.05, groupPct: 0.05, walkinPct: 0.25, directPct: 0.20,
-  // 成本覆盖
-  energyDelta: 0.035,      // 能源+3.5%（高功耗PC、散热）
-  suppliesDelta: 0.012,     // 消耗品+1.2%（外设、零食耗材）
-  maintenanceDelta: -0.005, // 维护-0.5%（设备较新，维保在质保内）
+  desc: '电竞酒店核心客群18-30岁（占比78%），OTA渠道依赖度高（约70%），私域流量（社群/抖音/微信）补充。设备投入大（单房电竞设备3-4.5万，单房总投入约10-15万），能源消耗显著高于普通酒店（24h高功耗PC+散热），设备维保成本低（质保期内）。',
+  // 渠道覆盖（参考IDJ爱电竞模型：OTA为主导渠道）
+  otaPct: 0.70, corpPct: 0.10, groupPct: 0.05, walkinPct: 0.05, directPct: 0.10,
+  // 成本覆盖（基于IDJ爱电竞3.0项目实际数据）
+  energyDelta: 0.045,      // 能源+4.5%（24h高功耗PC、散热、全时段空调）
+  suppliesDelta: 0.012,     // 消耗品+1.2%（外设、零食饮料耗材）
+  maintenanceDelta: -0.015, // 维护-1.5%（设备新、质保期内、维修费极低）
   brandMgmtOverride: 0.040, // 品牌管理费4%
-  staffRatioDelta: -0.04,  // 人房比-0.04（智能化管理、人效高）
+  staffRatioDelta: 0.05,   // 人房比+0.05（需24h前台/技术支持，参考值0.25-0.40）
   // 非客房收入建议
   nonRoomDefault: 12,
   // 季节性（电竞相对平稳，周末波动更大）
@@ -990,7 +1014,9 @@ const BENCHMARK_CASES = [
   { name: '案例G', tier: '二线', rooms: 112, adr: 474, occ: 86, revpar: 408, invest: 1933, rent: 584, gopRate: 50.8, laborRate: 13.2, payback: 7.0 },
   // 景区度假酒店（雅致酒店真实案例）
   { name: '微山岛雅致', tier: '景区度假', rooms: 60, adr: 800, occ: 60, revpar: 480, invest: 1500, rent: 0, gopRate: 62.0, laborRate: 16.0, payback: 2.3 },
-  { name: '青岛雅致', tier: '景区度假', rooms: 333, adr: 900, occ: 66, revpar: 594, invest: 9324, rent: 2142, gopRate: 58.0, laborRate: 14.5, payback: 5.5 }
+  { name: '青岛雅致', tier: '景区度假', rooms: 333, adr: 900, occ: 66, revpar: 594, invest: 9324, rent: 2142, gopRate: 58.0, laborRate: 14.5, payback: 5.5 },
+  // 电竞酒店（IDJ爱电竞3.0项目数据）
+  { name: 'IDJ爱电竞', tier: '电竞酒店', rooms: 23, adr: 330, occ: 60, revpar: 198, invest: 260, rent: 0, gopRate: 50.0, laborRate: 22.8, payback: 6.3 }
 ];
 
 const OTA_COMMISSION_RATE = 0.15;
@@ -1144,6 +1170,9 @@ function generateReport() {
   // 获取有效参数（基础 + 覆盖）
   const getParam = (key) => {
     if (modeOverride) {
+      // 绝对值override优先（度假酒店用）
+      if (modeOverride[key + 'Override'] !== undefined) return modeOverride[key + 'Override'];
+      // 增量delta其次（电竞酒店用）
       if (key === 'energy' && modeOverride.energyDelta !== undefined) return tp[key] + modeOverride.energyDelta;
       if (key === 'supplies' && modeOverride.suppliesDelta !== undefined) return tp[key] + modeOverride.suppliesDelta;
       if (key === 'maintenance' && modeOverride.maintenanceDelta !== undefined) return tp[key] + modeOverride.maintenanceDelta;
@@ -1161,8 +1190,9 @@ function generateReport() {
 
   // ---- 动态人工成本计算 ----
   const baseStaffRatio = tp.staffRatio;
-  const effectiveStaffRatio = modeOverride && modeOverride.staffRatioDelta !== undefined
-    ? baseStaffRatio + modeOverride.staffRatioDelta : baseStaffRatio;
+  const effectiveStaffRatio = modeOverride && modeOverride.staffRatioOverride !== undefined
+    ? modeOverride.staffRatioOverride
+    : (modeOverride && modeOverride.staffRatioDelta !== undefined ? baseStaffRatio + modeOverride.staffRatioDelta : baseStaffRatio);
   const staffCount = Math.max(2, Math.round(rooms * effectiveStaffRatio));
   const managerSalary = tp.managerSalary;
   const staffSalary = tp.staffSalary;
@@ -1225,20 +1255,27 @@ function generateReport() {
     heroVerdict.className = 'hero-verdict difficult';
     heroSub.textContent = '在当前参数下，年度现金流为负，难以在合理周期内收回投资。建议重新评估投资规模、租金水平或目标市场。';
   } else {
-    heroPayback.innerHTML = actualPayback.toFixed(1) + '<span class="hero-unit">年</span>';
+    const resortFloat = (isResortMode && modeOverride && modeOverride.paybackFloatYears) ? modeOverride.paybackFloatYears : 0;
+    if (resortFloat > 0) {
+      const pbLow = Math.max(1, actualPayback - resortFloat).toFixed(1);
+      const pbHigh = (actualPayback + resortFloat).toFixed(1);
+      heroPayback.innerHTML = `${pbLow}-${pbHigh}<span class="hero-unit">年</span>`;
+    } else {
+      heroPayback.innerHTML = actualPayback.toFixed(1) + '<span class="hero-unit">年</span>';
+    }
     heroPayback.className = 'hero-value';
     if (actualPayback <= tp.paybackGood) {
       heroVerdict.textContent = '✅ 投资可行';
       heroVerdict.className = 'hero-verdict feasible';
-      heroSub.textContent = `该城市等级优质回本区间为 ${tp.paybackDesc}，当前测算 ${actualPayback.toFixed(1)} 年处于优秀水平，项目可投性良好。`;
+      heroSub.textContent = `该城市等级优质回本区间为 ${tp.paybackDesc}，当前测算 ${actualPayback.toFixed(1)} 年处于优秀水平，项目可投性良好。${resortFloat > 0 ? '（度假酒店波动大，实际约 ' + pbLow + '-' + pbHigh + ' 年）' : ''}`;
     } else if (actualPayback <= tp.paybackFeasible) {
       heroVerdict.textContent = '🔶 有一定挑战';
       heroVerdict.className = 'hero-verdict challenging';
-      heroSub.textContent = `该城市等级参考回本周期为 ${tp.paybackDesc}，当前测算 ${actualPayback.toFixed(1)} 年处于合理范围。建议优化定价策略或控制运营成本以缩短回本周期。`;
+      heroSub.textContent = `该城市等级参考回本周期为 ${tp.paybackDesc}，当前测算 ${actualPayback.toFixed(1)} 年处于合理范围。建议优化定价策略或控制运营成本以缩短回本周期。${resortFloat > 0 ? '（度假酒店波动大，实际约 ' + pbLow + '-' + pbHigh + ' 年）' : ''}`;
     } else {
       heroVerdict.textContent = '🔴 回本压力较大';
       heroVerdict.className = 'hero-verdict difficult';
-      heroSub.textContent = `该城市等级参考回本周期为 ${tp.paybackDesc}，当前测算 ${actualPayback.toFixed(1)} 年超出行业参考范围。建议重新评估投资规模、租金水平或选址。`;
+      heroSub.textContent = `该城市等级参考回本周期为 ${tp.paybackDesc}，当前测算 ${actualPayback.toFixed(1)} 年超出行业参考范围。建议重新评估投资规模、租金水平或选址。${resortFloat > 0 ? '（度假酒店波动大，实际约 ' + pbLow + '-' + pbHigh + ' 年）' : ''}`;
     }
   }
 
@@ -1370,8 +1407,9 @@ function generateReport() {
       <div class="pb-final">
         <div class="pb-final-label">静态回收期 = 总投资 ÷ 年现金流<br><span style="font-size:12px;font-weight:400;color:var(--text-muted);">年GOP利润 ¥${annualGop.toFixed(1)}万</span></div>
         <div style="text-align:right;">
-          <div class="pb-final-val">${actualPayback === Infinity ? '∞' : actualPayback.toFixed(1)}<span class="pb-final-unit">年</span></div>
+          <div class="pb-final-val">${actualPayback === Infinity ? '∞' : (isResortMode && modeOverride && modeOverride.paybackFloatYears ? Math.max(1, actualPayback - modeOverride.paybackFloatYears).toFixed(1) + '-' + (actualPayback + modeOverride.paybackFloatYears).toFixed(1) : actualPayback.toFixed(1))}<span class="pb-final-unit">年</span></div>
           <div class="pb-formula">¥${investment.toLocaleString()}万 ÷ ¥${actualCashFlow.toFixed(1)}万/年</div>
+          ${isResortMode && modeOverride && modeOverride.paybackFloatYears ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">度假酒店波动大，参考区间 ±${modeOverride.paybackFloatYears.toFixed(0)}年</div>` : ''}
         </div>
       </div>
 
@@ -1385,6 +1423,10 @@ function generateReport() {
   // ---- 单房运营成本看板 ----
   const soldRoomsAnnual = Math.round(rooms * 365 * refOcc / 100);
   const perRoomCostNight = Math.round((annualCost * 10000) / soldRoomsAnnual);
+
+  // 度假酒店：输出区间值
+  const isResortMode = currentHotelMode === 'resort';
+  const resortCostRange = isResortMode && modeOverride && modeOverride.costPerRoomRange ? modeOverride.costPerRoomRange : null;
 
   const idealPct = 0.50;
   const warnPct = 0.58;
@@ -1416,12 +1458,15 @@ function generateReport() {
     <div style="text-align:center;margin-bottom:12px;">
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">当前项目 · 每间已售客房日均运营成本</div>
       <div style="font-size:44px;font-weight:700;color:${costLevelColor};line-height:1.1;">
-        ¥${perRoomCostNight}<span style="font-size:14px;font-weight:400;color:var(--text-secondary);"> /间/晚</span>
+        ${resortCostRange
+          ? `¥${resortCostRange[0]}-${resortCostRange[1]}<span style="font-size:14px;font-weight:400;color:var(--text-secondary);"> /间/晚</span>`
+          : `¥${perRoomCostNight}<span style="font-size:14px;font-weight:400;color:var(--text-secondary);"> /间/晚</span>`}
       </div>
       <div style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:4px 14px;border-radius:20px;background:${costLevelBg};font-size:13px;font-weight:600;color:${costLevelColor};">
         ${costLevelIcon} ${costLevel}（成本率 ${(totalCostRatio*100).toFixed(1)}%，GOP率 ${(gopRatio*100).toFixed(1)}%）
       </div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">
+      ${resortCostRange ? `<div style="font-size:11px;color:var(--text-muted);margin-top:6px;">度假酒店运营成本波动较大，区间 ¥${resortCostRange[0]}-${resortCostRange[1]} 元/间/晚</div>` : ''}
+      <div style="font-size:11px;color:var(--text-muted);margin-top:${resortCostRange ? '2' : '8'}px;">
         年售房 <b>${soldRoomsAnnual.toLocaleString()}</b> 间夜 · 年运营成本 ¥${Math.round(annualCost)}万 · 团队 ${staffCount} 人（人房比 ${effectiveStaffRatio}）
       </div>
     </div>
@@ -1541,13 +1586,16 @@ function generateReport() {
   document.getElementById('costSummaryContent').innerHTML = costSummaryHtml;
 
   // ---- 月度GMV堆积图 ----
+  const isMobile = window.innerWidth <= 520;
   let monthlyHtml = '';
   const maxFactor = Math.max(...effectiveSeasonalFactors);
   const monthAvg = annualRev / 12;
   const chColors = { ota: '#e74c3c', corp: '#3498db', group: '#ff9800', walkin: '#2ecc71', direct: '#9b59b6' };
   const chLabels = { ota: 'OTA', corp: '大客户', group: '团体', walkin: '散客', direct: '自营' };
-  const BAR_MAX = window.innerWidth <= 520 ? 104 : 164;
+  const BAR_MAX = isMobile ? 104 : 164;
 
+  // 先收集12个月的HTML片段
+  const monthFragments = [];
   for (let i = 0; i < 12; i++) {
     const mthRev = monthAvg * effectiveSeasonalFactors[i];
     const totalHeightPx = Math.max(4, (effectiveSeasonalFactors[i] / maxFactor) * BAR_MAX);
@@ -1565,21 +1613,27 @@ function generateReport() {
       if (s.pct <= 0) return;
       const segHeightPx = Math.max(1, Math.round(totalHeightPx * s.pct));
       const pctLabel = (s.pct * 100).toFixed(0);
-      // 三层显示策略：大色块正常文字 / 中等色块小字 / 小色块旋转文字
-      const showNormal = segHeightPx >= 16;           // ≥16px：8px 正常居中
-      const showSmall  = segHeightPx >= 9 && segHeightPx < 16;  // 9-15px：7px 小字
-      const showRotate = segHeightPx >= 4 && segHeightPx < 9;   // 4-8px：旋转90°
+      // 阈值分层：大色块正常显示 / 中等色块小字 / 小色块隐藏（避免拥挤，hover看tooltip）
+      const showLabel = segHeightPx >= 18;           // ≥18px：正常显示
+      const showTiny  = segHeightPx >= 10 && segHeightPx < 18;  // 10-17px：极小字
       segHtml += `<div class="month-stack-segment" style="height:${segHeightPx}px;background:${chColors[s.key]};display:flex;align-items:center;justify-content:center;position:relative;" title="${chLabels[s.key]}: ${pctLabel}%">
-        ${showNormal ? `<span style="font-size:8px;color:#fff;font-weight:600;opacity:0.95;">${pctLabel}%</span>` : ''}
-        ${showSmall  ? `<span style="font-size:7px;color:#fff;font-weight:600;opacity:0.95;transform:scale(0.92);">${pctLabel}%</span>` : ''}
-        ${showRotate ? `<span style="position:absolute;font-size:7px;color:#fff;font-weight:600;white-space:nowrap;transform:rotate(-90deg);opacity:0.95;">${pctLabel}%</span>` : ''}
+        ${showLabel ? `<span style="font-size:8px;color:#fff;font-weight:600;opacity:0.95;text-shadow:0 1px 2px rgba(0,0,0,0.3);">${pctLabel}%</span>` : ''}
+        ${showTiny  ? `<span style="font-size:6px;color:#fff;font-weight:600;opacity:0.95;text-shadow:0 1px 2px rgba(0,0,0,0.3);">${pctLabel}%</span>` : ''}
       </div>`;
     });
-    monthlyHtml += `<div class="month-col">
+    monthFragments.push(`<div class="month-col">
       <div style="font-size:9px;font-weight:600;color:var(--text-secondary);text-align:center;margin-bottom:3px;white-space:nowrap;">¥${mthRev.toFixed(1)}万</div>
       <div class="month-stack" style="height:${Math.round(totalHeightPx)}px;">${segHtml}</div>
       <div class="month-label">${SEASON_LABELS[i]}</div>
-    </div>`;
+    </div>`);
+  }
+
+  if (isMobile) {
+    // 手机端：分两行，1-6月 + 7-12月
+    monthlyHtml = `<div class="monthly-row">${monthFragments.slice(0, 6).join('')}</div>`;
+    monthlyHtml += `<div class="monthly-row" style="margin-top:8px;">${monthFragments.slice(6, 12).join('')}</div>`;
+  } else {
+    monthlyHtml = monthFragments.join('');
   }
   document.getElementById('monthlyGrid').innerHTML = monthlyHtml;
 
@@ -1613,7 +1667,13 @@ function generateReport() {
   document.getElementById('mixGrid').innerHTML = mixHtml;
 
   // ---- 行业基准参考 ----
-  const userInvestPerRoom = (investment * 10000) / rooms;
+  // 度假酒店模式下隐藏基准参考
+  const benchmarkCard = document.getElementById('benchmarkCard');
+  if (currentHotelMode === 'resort') {
+    benchmarkCard.style.display = 'none';
+  } else {
+    benchmarkCard.style.display = '';
+    const userInvestPerRoom = (investment * 10000) / rooms;
   const userGopRate = effectiveGopRatio * 100;
 
   const metrics = {
@@ -1695,6 +1755,7 @@ function generateReport() {
   benchHtml += `</div>`;
 
   document.getElementById('benchmarkContent').innerHTML = benchHtml;
+  } // end benchmark (non-resort)
 
   // ---- 关键路径 ----
   const monthlyGMV = annualRev / 12;
