@@ -1135,6 +1135,7 @@ function generateReport() {
   const refPrice = parseFloat(document.getElementById('referencePrice').value);
   const refOcc = parseFloat(document.getElementById('referenceOccupancy').value);
   const nonRoomPct = parseFloat(document.getElementById('nonRoomRevenuePct').value) || 0;
+  const isResortMode = currentHotelMode === 'resort';
 
   const errors = [];
   if (!tier) errors.push('请选择城市等级');
@@ -1256,9 +1257,10 @@ function generateReport() {
     heroSub.textContent = '在当前参数下，年度现金流为负，难以在合理周期内收回投资。建议重新评估投资规模、租金水平或目标市场。';
   } else {
     const resortFloat = (isResortMode && modeOverride && modeOverride.paybackFloatYears) ? modeOverride.paybackFloatYears : 0;
+    let pbLow = '', pbHigh = '';
     if (resortFloat > 0) {
-      const pbLow = Math.max(1, actualPayback - resortFloat).toFixed(1);
-      const pbHigh = (actualPayback + resortFloat).toFixed(1);
+      pbLow = Math.max(1, actualPayback - resortFloat).toFixed(1);
+      pbHigh = (actualPayback + resortFloat).toFixed(1);
       heroPayback.innerHTML = `${pbLow}-${pbHigh}<span class="hero-unit">年</span>`;
     } else {
       heroPayback.innerHTML = actualPayback.toFixed(1) + '<span class="hero-unit">年</span>';
@@ -1425,7 +1427,6 @@ function generateReport() {
   const perRoomCostNight = Math.round((annualCost * 10000) / soldRoomsAnnual);
 
   // 度假酒店：输出区间值
-  const isResortMode = currentHotelMode === 'resort';
   const resortCostRange = isResortMode && modeOverride && modeOverride.costPerRoomRange ? modeOverride.costPerRoomRange : null;
 
   const idealPct = 0.50;
