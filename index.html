@@ -936,7 +936,7 @@ const TIER_PARAMS = {
     otaPct: 0.55, corpPct: 0.15, groupPct: 0.15, walkinPct: 0.05, directPct: 0.10,
     revparDesc: '100–200 元', paybackDesc: '4–8 年', investPerRoomDesc: '8–15 万/间',
     paybackGood: 5, paybackFeasible: 8,
-    desc: '三线城市投资最小但需求波动较大，OTA渠道主导（约55%），散客占比约5%。人工成本按0.2人房比计算，需重点关注本地人口流动和大型项目落地。'
+    desc: '三线城市投资最小但需求波动较大，OTA渠道主导（约55%），散客占比约5%。人工成本按0.2人房比计算（店长≥1万/月，员工≥6千/月），需重点关注本地人口流动和大型项目落地。'
   }
 };
 
@@ -1047,6 +1047,32 @@ const SEASONAL_FACTORS = [0.65, 0.70, 0.85, 0.95, 1.10, 1.00, 1.15, 1.20, 0.95, 
 const SEASON_LABELS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
 const SEASON_TAGS = ['淡季-元旦前','春节假期','两会-考研复试','清明-平季','五一黄金周','高考-毕业季','暑假-旅游旺季','暑假高峰','开学季','国庆黄金周','双11-淡季','年末-圣诞元旦'];
 const SEASON_CLASS = ['low','low','shoulder','shoulder','peak','special','peak','peak','shoulder','peak','low','low'];
+
+// 每月客源结构微调（反映淡旺季渠道差异），全年平均接近基准值
+const MONTHLY_MIX_VARIATIONS = [
+  { ota: +0.04, walkin: -0.02, corp: -0.02 },                // 1月 淡季 OTA依赖↑
+  { ota: -0.02, walkin: +0.05, group: -0.03 },               // 2月 春节 散客↑
+  { ota: +0.02, walkin: -0.01, corp: -0.01 },                // 3月 恢复
+  { ota: -0.01, walkin: +0.02, group: -0.01 },               // 4月 清明 散客↑
+  { ota: -0.03, walkin: +0.03, group: +0.02, corp: -0.02 },  // 5月 五一 散客+团体↑
+  { ota: +0.02, walkin: +0.01, group: -0.02, corp: -0.01 },  // 6月 淡季 OTA↑
+  { ota: +0.04, walkin: +0.02, group: -0.03, corp: -0.03 },  // 7月 暑假 OTA+散客↑
+  { ota: +0.04, walkin: +0.02, group: -0.03, corp: -0.03 },  // 8月 暑假 OTA+散客↑
+  { ota: +0.01, walkin: -0.02, corp: +0.02, group: -0.01 },  // 9月 开学 商务恢复
+  { ota: -0.03, walkin: +0.04, group: -0.01 },               // 10月 国庆 散客↑
+  { ota: +0.03, walkin: -0.02, group: -0.01 },               // 11月 淡季 OTA↑
+  { ota: +0.02, walkin: -0.02, corp: +0.02, group: -0.02 },  // 12月 年末 商务↑
+];
+function getMonthlyMix(baseOta, baseCorp, baseGroup, baseWalkin, baseDirect, monthIndex) {
+  const v = MONTHLY_MIX_VARIATIONS[monthIndex] || {};
+  let ota   = Math.max(0.02, baseOta   + (v.ota   || 0));
+  let corp  = Math.max(0.02, baseCorp  + (v.corp  || 0));
+  let group = Math.max(0.02, baseGroup + (v.group || 0));
+  let walk  = Math.max(0.02, baseWalkin+ (v.walkin|| 0));
+  let dir   = Math.max(0.02, baseDirect+ (v.direct|| 0));
+  const total = ota + corp + group + walk + dir;
+  return { ota: ota/total, corp: corp/total, group: group/total, walkin: walk/total, direct: dir/total };
+}
 
 // ============================================================
 // 城市等级变化 → 更新提示
@@ -1404,17 +1430,22 @@ function generateReport() {
       <div class="cost-gauge-marker" style="left:${markerPos}%;background:${costLevelColor};box-shadow:0 0 6px ${costLevelColor};"></div>
     </div>
 
-    <div style="position:relative;height:30px;margin-top:4px;">
-      <div style="position:absolute;left:0;top:0;width:1px;height:8px;background:var(--card-border);"></div>
-      <div style="position:absolute;left:${idealPct*100}%;top:0;width:1px;height:8px;background:#2d6a4f;"></div>
-      <div style="position:absolute;left:${warnPct*100}%;top:0;width:1px;height:8px;background:#b8690a;"></div>
-      <div style="position:absolute;left:${dangerPct*100}%;top:0;width:1px;height:8px;background:#c0392b;"></div>
-      <div style="position:absolute;left:100%;top:0;width:1px;height:8px;background:var(--card-border);"></div>
-      <span style="position:absolute;left:0;top:10px;transform:translateX(-20%);font-size:10px;color:var(--text-muted);">¥0</span>
-      <span style="position:absolute;left:100%;top:10px;transform:translateX(-80%);font-size:10px;color:var(--text-muted);white-space:nowrap;">¥${adr}(卖价)</span>
-      <span style="position:absolute;left:${idealPct*50}%;top:20px;transform:translateX(-50%);font-size:9px;font-weight:600;color:#2d6a4f;white-space:nowrap;">≤¥${idealYuan} 优秀</span>
-      <span style="position:absolute;left:${(idealPct+warnPct)/2*100}%;top:20px;transform:translateX(-50%);font-size:9px;font-weight:600;color:#b8690a;white-space:nowrap;">¥${warnYuan} 偏高</span>
-      <span style="position:absolute;left:${(warnPct+dangerPct)/2*100}%;top:20px;transform:translateX(-50%);font-size:9px;font-weight:600;color:#c0392b;white-space:nowrap;">¥${dangerYuan} 危险</span>
+    <div style="position:relative;height:48px;margin-top:4px;">
+      <!-- 阈值竖线 -->
+      <div style="position:absolute;left:0;top:0;width:1px;height:10px;background:var(--card-border);"></div>
+      <div style="position:absolute;left:${idealPct*100}%;top:0;width:1px;height:10px;background:#2d6a4f;"></div>
+      <div style="position:absolute;left:${warnPct*100}%;top:0;width:1px;height:10px;background:#b8690a;"></div>
+      <div style="position:absolute;left:${dangerPct*100}%;top:0;width:1px;height:10px;background:#c0392b;"></div>
+      <div style="position:absolute;left:100%;top:0;width:1px;height:10px;background:var(--card-border);"></div>
+      <!-- 连接线 -->
+      <div style="position:absolute;left:0;top:10px;width:100%;height:1px;background:linear-gradient(90deg,#2d6a4f ${idealPct*100}%,#b8690a ${idealPct*100}%,#b8690a ${warnPct*100}%,#c0392b ${warnPct*100}%,#c0392b ${dangerPct*100}%,rgba(0,0,0,0.1) ${dangerPct*100}%);"></div>
+      <!-- 左右端点标注 -->
+      <span style="position:absolute;left:0;top:14px;font-size:10px;color:var(--text-muted);">¥0</span>
+      <span style="position:absolute;right:0;top:14px;font-size:10px;color:var(--text-muted);white-space:nowrap;">¥${adr}(卖价)</span>
+      <!-- 阈值金额标注：精确对齐竖线正下方，错峰排列 -->
+      <span style="position:absolute;left:${idealPct*100}%;top:14px;transform:translateX(-50%);font-size:9px;font-weight:600;color:#2d6a4f;white-space:nowrap;">≤¥${idealYuan} 优秀</span>
+      <span style="position:absolute;left:${warnPct*100}%;top:28px;transform:translateX(-50%);font-size:9px;font-weight:600;color:#b8690a;white-space:nowrap;">¥${warnYuan} 偏高</span>
+      <span style="position:absolute;left:${dangerPct*100}%;top:42px;transform:translateX(-50%);font-size:9px;font-weight:600;color:#c0392b;white-space:nowrap;">¥${dangerYuan} 危险</span>
     </div>
     <div style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:2px;">
       ▲ 当前 ¥${perRoomCostNight} 占卖价 ${(perRoomCostNight/adr*100).toFixed(0)}%
@@ -1516,37 +1547,44 @@ function generateReport() {
   for (let i = 0; i < 12; i++) {
     const mthRev = monthAvg * effectiveSeasonalFactors[i];
     const totalHeightPx = Math.max(4, (effectiveSeasonalFactors[i] / maxFactor) * BAR_MAX);
+    // 每月客源占比不一致（根据淡旺季微调）
+    const mix = getMonthlyMix(effectiveOtaPct, effectiveCorpPct, effectiveGroupPct, effectiveWalkinPct, effectiveDirectPct, i);
     const segs = [
-      { key: 'ota', pct: effectiveOtaPct },
-      { key: 'corp', pct: effectiveCorpPct },
-      { key: 'group', pct: effectiveGroupPct },
-      { key: 'walkin', pct: effectiveWalkinPct },
-      { key: 'direct', pct: effectiveDirectPct }
+      { key: 'ota', pct: mix.ota },
+      { key: 'corp', pct: mix.corp },
+      { key: 'group', pct: mix.group },
+      { key: 'walkin', pct: mix.walkin },
+      { key: 'direct', pct: mix.direct }
     ];
     let segHtml = '';
     segs.forEach(s => {
       if (s.pct <= 0) return;
       const segHeightPx = Math.max(1, Math.round(totalHeightPx * s.pct));
       const pctLabel = (s.pct * 100).toFixed(0);
-      const showLabel = segHeightPx >= 20;
-      segHtml += `<div class="month-stack-segment" style="height:${segHeightPx}px;background:${chColors[s.key]};" title="${chLabels[s.key]}: ${pctLabel}%">
-        ${showLabel ? `<span style="display:block;text-align:center;line-height:${segHeightPx}px;font-size:9px;color:#fff;font-weight:600;opacity:0.9;">${pctLabel}%</span>` : ''}
+      // 降低显示阈值：>=10px 就显示，极小值用横排文字
+      const showInside = segHeightPx >= 10;
+      const showOutside = segHeightPx < 10 && segHeightPx >= 3;
+      segHtml += `<div class="month-stack-segment" style="height:${segHeightPx}px;background:${chColors[s.key]};position:relative;" title="${chLabels[s.key]}: ${pctLabel}%">
+        ${showInside ? `<span style="display:block;text-align:center;line-height:${segHeightPx}px;font-size:8px;color:#fff;font-weight:600;opacity:0.95;">${pctLabel}%</span>` : ''}
+        ${showOutside ? `<span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-90deg);font-size:7px;color:#fff;font-weight:600;white-space:nowrap;opacity:0.95;">${pctLabel}%</span>` : ''}
       </div>`;
     });
     monthlyHtml += `<div class="month-col">
+      <div style="font-size:9px;font-weight:600;color:var(--text-secondary);text-align:center;margin-bottom:3px;white-space:nowrap;">¥${mthRev.toFixed(1)}万</div>
       <div class="month-stack" style="height:${Math.round(totalHeightPx)}px;">${segHtml}</div>
       <div class="month-label">${SEASON_LABELS[i]}</div>
     </div>`;
   }
   document.getElementById('monthlyGrid').innerHTML = monthlyHtml;
 
-  // 更新季节图例（显示所有5个渠道）
+  // 更新季节图例（显示全年平均占比，各月实际会有波动）
   document.getElementById('seasonLegend').innerHTML = `
     <span><span class="dot" style="background:${chColors.ota};"></span> OTA平台 ${effectiveOtaPct>0?(effectiveOtaPct*100).toFixed(0)+'%':''}</span>
     <span><span class="dot" style="background:${chColors.corp};"></span> 大客户/协议 ${effectiveCorpPct>0?(effectiveCorpPct*100).toFixed(0)+'%':''}</span>
     <span><span class="dot" style="background:${chColors.group};"></span> 团体客/旅行社 ${effectiveGroupPct>0?(effectiveGroupPct*100).toFixed(0)+'%':''}</span>
     <span><span class="dot" style="background:${chColors.walkin};"></span> 散客 ${effectiveWalkinPct>0?(effectiveWalkinPct*100).toFixed(0)+'%':''}</span>
     <span><span class="dot" style="background:${chColors.direct};"></span> 自营/直销 ${effectiveDirectPct>0?(effectiveDirectPct*100).toFixed(0)+'%':''}</span>
+    <span style="font-size:10px;color:var(--text-muted);margin-left:4px;">（全年平均 · 各月随淡旺季波动）</span>
   `;
 
   // ---- 客流渠道 ----
