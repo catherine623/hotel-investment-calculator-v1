@@ -959,7 +959,7 @@ const TIER_PARAMS = {
 // ============================================================
 const RESORT_OVERRIDES = {
   label: '景区度假',
-  desc: '景区度假酒店参考雅致酒店实际运营数据并上浮调整：ADR通常800-900元/间，首年入住率50-52%、成熟期60-66%，单房投入25-28万，非客房收入（餐饮/SPA/活动）贡献显著，可达客房收入的20-25%。OTA依赖度高（约55%），淡旺季差异极大。',
+  desc: '景区度假酒店参考雅致酒店实际运营数据并上浮调整：ADR通常800-900元/间，首年入住率50-52%、成熟期60-66%，单房投入40-80万，非客房收入（餐饮/SPA/活动）贡献显著，可达客房收入的20-25%。OTA依赖度高（约55%），淡旺季差异极大。',
   // 渠道覆盖（旺季基准）
   otaPct: 0.55, corpPct: 0.05, groupPct: 0.20, walkinPct: 0.10, directPct: 0.10,
   // 成本参数绝对值override（基于雅致运营成本明细上浮10-15%，ADR基准800元）
@@ -1829,11 +1829,9 @@ function generateReport() {
       <div class="g-title">投资结构参考</div>
       <div class="g-text">
         单间投资额：<strong>¥${Math.round(investPerRoom/10000)}万/间</strong><br>
-        ${tp.label}参考：<b>${tp.investPerRoomDesc}</b><br>
-        单间年现金流：<strong>¥${Math.round(cashPerRoom/10000)}万/间</strong><br>
-        ${investPerRoom/10000 > 24 ? '<span style="color:var(--red);">⚠ 单间造价偏高（行业均值约18-19万/间）</span>'
-          : investPerRoom/10000 > 18 ? '<span style="color:var(--amber);">🔶 单间造价处于行业中上水平</span>'
-          : '<span style="color:var(--green);">✓ 单间造价合理</span>'}
+        ${isResortMode
+          ? `度假酒店参考：<b>40-80万/间</b><br>单间年现金流：<strong>¥${Math.round(cashPerRoom/10000)}万/间</strong><br>${investPerRoom/10000 > 80 ? '<span style="color:var(--red);">⚠ 单间造价偏高（度假酒店行业均值约40-60万/间）</span>' : investPerRoom/10000 > 60 ? '<span style="color:var(--amber);">🔶 单间造价处于行业中上水平</span>' : '<span style="color:var(--green);">✓ 单间造价合理</span>'}`
+          : `${tp.label}参考：<b>${tp.investPerRoomDesc}</b><br>单间年现金流：<strong>¥${Math.round(cashPerRoom/10000)}万/间</strong><br>${investPerRoom/10000 > 24 ? '<span style="color:var(--red);">⚠ 单间造价偏高（行业均值约18-19万/间）</span>' : investPerRoom/10000 > 18 ? '<span style="color:var(--amber);">🔶 单间造价处于行业中上水平</span>' : '<span style="color:var(--green);">✓ 单间造价合理</span>'}`}
       </div>
     </div>
   `;
