@@ -884,7 +884,7 @@ function switchHotelMode(mode) {
 
   if (mode === 'resort') {
     hint.innerHTML = '🏖 <b>景区度假模式</b>：OTA依赖度高、旅行社团体客占比大、非客房收入贡献显著、季节性波动强';
-    nonRoomHint.textContent = '度假酒店非客房收入较高（餐饮/活动/SPA），通常 20-25%。参考：微山岛雅致酒店餐饮收入占客房收入约23%';
+    nonRoomHint.textContent = '度假酒店非客房收入较高（餐饮/活动/SPA），通常 20-25%';
     if (parseFloat(nonRoomInput.value) < 20) nonRoomInput.value = 20;
   } else if (mode === 'esports') {
     hint.innerHTML = '🎮 <b>电竞酒店模式</b>：私域流量占比高、设备投入大、能耗显著高于普通酒店、非客房收入(零食/外设)';
