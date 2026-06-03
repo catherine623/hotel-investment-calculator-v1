@@ -781,7 +781,7 @@ body {
 
   <!-- 度假酒店免责声明（动态显示） -->
   <div id="resortDisclaimer" style="display:none;text-align:center;padding:10px 16px;margin-bottom:8px;border-radius:8px;background:linear-gradient(135deg,#fff8e1,#fff3cd);font-size:13px;font-weight:600;color:#b8690a;">
-    ⚠️ 度假酒店成本和收入波动大。测算仅供参考
+    ⚠️ 景区度假酒店模型为高端度假测算，成本和收入波动大。测算仅供参考
   </div>
 
   <!-- 回报周期测算过程 -->
@@ -973,8 +973,6 @@ const RESORT_OVERRIDES = {
   // 人房比绝对值0.4（餐饮/SPA/活动/安保/管家，旺季临时工多）
   staffRatioOverride: 0.40,
   brandMgmtOverride: 0.050,    // 品牌管理费5%
-  // 度假酒店单房运营成本参考区间（元/间/夜），用于UI展示
-  costPerRoomRange: [190, 260],
   // 度假酒店投资回收期浮动范围（±年数）
   paybackFloatYears: 2.0,
   // 非客房收入建议
@@ -1426,8 +1424,11 @@ function generateReport() {
   const soldRoomsAnnual = Math.round(rooms * 365 * refOcc / 100);
   const perRoomCostNight = Math.round((annualCost * 10000) / soldRoomsAnnual);
 
-  // 度假酒店：输出区间值
-  const resortCostRange = isResortMode && modeOverride && modeOverride.costPerRoomRange ? modeOverride.costPerRoomRange : null;
+  // 度假酒店：基于实际计算值给出浮动区间（±12%，反映淡旺季/ADR波动）
+  const resortCostRange = isResortMode ? [
+    Math.round(perRoomCostNight * 0.88),
+    Math.round(perRoomCostNight * 1.12)
+  ] : null;
 
   const idealPct = 0.50;
   const warnPct = 0.58;
