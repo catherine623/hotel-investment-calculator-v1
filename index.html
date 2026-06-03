@@ -923,7 +923,7 @@ const TIER_PARAMS = {
     otaPct: 0.55, corpPct: 0.15, groupPct: 0.15, walkinPct: 0.05, directPct: 0.10,
     revparDesc: '280–450 元', paybackDesc: '6–10 年', investPerRoomDesc: '20–30 万/间',
     paybackGood: 8, paybackFeasible: 10,
-    desc: '一线城市竞争激烈，OTA依赖度高（约55%），人工成本按0.2人房比计算（店长≥1.5万/月，员工≥6千/月）。运营成本率约 45-48%，GOP率通常 52-55%。'
+    desc: '一线城市竞争激烈，OTA依赖度高（约55%），人工成本按0.4人房比计算（店长≥1.5万/月，员工≥6千/月）。运营成本率约 45-48%，GOP率通常 52-55%。'
   },
   2: { // 新一线城市（杭州/成都/武汉/南京等）
     label: '新一线城市', cities: '杭州/成都/武汉/南京等',
@@ -932,7 +932,7 @@ const TIER_PARAMS = {
     otaPct: 0.55, corpPct: 0.15, groupPct: 0.15, walkinPct: 0.05, directPct: 0.10,
     revparDesc: '200–350 元', paybackDesc: '5–8 年', investPerRoomDesc: '16–24 万/间',
     paybackGood: 6, paybackFeasible: 8,
-    desc: '新一线城市商务+旅游双轮驱动，OTA渠道占主导（55%），人工成本按0.2人房比计算（店长≥1万/月，员工≥6千/月）。GOP率参考 53-56%。'
+    desc: '新一线城市商务+旅游双轮驱动，OTA渠道占主导（55%），人工成本按0.4人房比计算（店长≥1万/月，员工≥6千/月）。GOP率参考 53-56%。'
   },
   3: { // 二线城市（长沙/合肥/昆明/厦门/常州/青岛等）
     label: '二线城市', cities: '长沙/合肥/昆明/厦门/常州/青岛等',
@@ -941,7 +941,7 @@ const TIER_PARAMS = {
     otaPct: 0.55, corpPct: 0.15, groupPct: 0.15, walkinPct: 0.05, directPct: 0.10,
     revparDesc: '150–280 元', paybackDesc: '4–7 年', investPerRoomDesc: '13–21 万/间',
     paybackGood: 5, paybackFeasible: 7,
-    desc: '二线城市OTA依赖度持续上升（约55%），团体客占比约15%。人工成本按0.2人房比计算，租金谈判为关键成功因素，GOP率参考 50-54%。'
+    desc: '二线城市OTA依赖度持续上升（约55%），团体客占比约15%。人工成本按0.4人房比计算，租金谈判为关键成功因素，GOP率参考 50-54%。'
   },
   4: { // 三线及以下
     label: '三线及以下', cities: '地级市/县城',
@@ -950,7 +950,7 @@ const TIER_PARAMS = {
     otaPct: 0.55, corpPct: 0.15, groupPct: 0.15, walkinPct: 0.05, directPct: 0.10,
     revparDesc: '100–200 元', paybackDesc: '4–8 年', investPerRoomDesc: '8–15 万/间',
     paybackGood: 5, paybackFeasible: 8,
-    desc: '三线城市投资最小但需求波动较大，OTA渠道主导（约55%），散客占比约5%。人工成本按0.2人房比计算（店长≥1万/月，员工≥6千/月），需重点关注本地人口流动和大型项目落地。'
+    desc: '三线城市投资最小但需求波动较大，OTA渠道主导（约55%），散客占比约5%。人工成本按0.4人房比计算（店长≥1万/月，员工≥6千/月），需重点关注本地人口流动和大型项目落地。'
   }
 };
 
@@ -1294,7 +1294,6 @@ function generateReport() {
     ${modeDesc ? '<span style="font-size:12px;color:var(--text-secondary);display:block;margin-top:4px;">🌊 <b>' + modeName + '模式说明</b>：' + modeDesc + '</span>' : ''}
     <span style="font-size:12px;color:var(--text-secondary);margin-top:4px;display:block;">
       测算城市等级：<b>${tp.label}</b>（${tp.cities}）&nbsp;|&nbsp;
-      典型 RevPAR：${tp.revparDesc} &nbsp;|&nbsp;
       人工：${staffCount}人（人房比${effectiveStaffRatio}）&nbsp;|&nbsp;
       行业 GOP 率参考：${(gopRatio*100).toFixed(1)}%
     </span>
