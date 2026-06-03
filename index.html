@@ -884,8 +884,8 @@ function switchHotelMode(mode) {
 
   if (mode === 'resort') {
     hint.innerHTML = '🏖 <b>景区度假模式</b>：OTA依赖度高、旅行社团体客占比大、非客房收入贡献显著、季节性波动强';
-    nonRoomHint.textContent = '度假酒店非客房收入较高（餐饮/活动/SPA），通常 15-25%';
-    if (parseFloat(nonRoomInput.value) < 15) nonRoomInput.value = 15;
+    nonRoomHint.textContent = '度假酒店非客房收入较高（餐饮/活动/SPA），通常 20-25%。参考：微山岛雅致酒店餐饮收入占客房收入约23%';
+    if (parseFloat(nonRoomInput.value) < 20) nonRoomInput.value = 20;
   } else if (mode === 'esports') {
     hint.innerHTML = '🎮 <b>电竞酒店模式</b>：私域流量占比高、设备投入大、能耗显著高于普通酒店、非客房收入(零食/外设)';
     nonRoomHint.textContent = '电竞酒店非客房收入（零食/外设/饮料），通常 10-15%';
@@ -945,17 +945,17 @@ const TIER_PARAMS = {
 // ============================================================
 const RESORT_OVERRIDES = {
   label: '景区度假',
-  desc: '景区度假酒店OTA依赖度高（约55%），淡旺季客源差异大——旺季OTA和团体客占比上升，散客增加；淡季OTA依赖更强。非客房收入贡献显著（餐饮/活动/SPA）。季节性波动强，旺季收入可达淡季2-3倍。',
+  desc: '景区度假酒店参考雅致酒店实际运营数据：ADR通常800-900元/间，首年入住率50-52%、成熟期60-66%，单房投入25-28万，单房运营成本232-260元/间/夜。非客房收入（餐饮/SPA/活动）贡献显著，可达客房收入的20-25%。OTA依赖度高（约55%），淡旺季差异极大。',
   // 渠道覆盖（旺季基准）
   otaPct: 0.55, corpPct: 0.05, groupPct: 0.20, walkinPct: 0.10, directPct: 0.10,
   // 成本覆盖（增量，非替代）
-  energyDelta: 0.015,     // 能源+1.5%（恒温空调、泳池、公区）
-  maintenanceDelta: 0.010, // 维护+1%（园林/游乐设施）
-  staffRatioDelta: 0.08,   // 人房比+0.08（餐饮/活动/安保/管家岗位，旺季需更多临时工）
+  energyDelta: 0.020,     // 能源+2.0%（泳池恒温、SPA、大面积公区空调）
+  maintenanceDelta: 0.010, // 维护+1%（园林、游乐设施、水系统）
+  staffRatioDelta: 0.08,   // 人房比+0.08（餐饮/SPA/活动/安保/管家，旺季临时工多）
   brandMgmtOverride: 0.050, // 品牌管理费5%（度假品牌溢价较高）
-  // 非客房收入建议
-  nonRoomDefault: 15,
-  // 季节性因子覆盖（度假酒店季节性更强）
+  // 非客房收入建议（参考微山岛项目：餐饮占客房收入约23%）
+  nonRoomDefault: 20,
+  // 季节性因子覆盖（度假酒店季节性极强，暑假/国庆为绝对旺季）
   seasonalFactors: [0.45, 0.55, 0.75, 0.95, 1.25, 1.05, 1.35, 1.40, 0.90, 1.30, 0.60, 0.50]
 };
 
@@ -980,13 +980,17 @@ const ESPORT_OVERRIDES = {
 // 行业基准案例数据
 // ============================================================
 const BENCHMARK_CASES = [
+  // 标准中档酒店
   { name: '案例A', tier: '二线', rooms: 105, adr: 356, occ: 75, revpar: 267, invest: 1431, rent: 234, gopRate: 44.5, laborRate: 18.6, payback: 6.2 },
   { name: '案例B', tier: '新一线', rooms: 144, adr: 590, occ: 68, revpar: 401, invest: 2538, rent: 317, gopRate: 56.4, laborRate: 12.3, payback: 7.3 },
   { name: '案例C', tier: '新一线', rooms: 112, adr: 474, occ: 86, revpar: 408, invest: 1927, rent: 517, gopRate: 51.7, laborRate: 13.9, payback: 5.7 },
   { name: '案例D', tier: '新一线', rooms: 115, adr: 419, occ: 71, revpar: 297, invest: 2400, rent: 300, gopRate: 53.7, laborRate: 12.6, payback: 6.3 },
   { name: '案例E', tier: '新一线', rooms: 110, adr: 510, occ: 79, revpar: 403, invest: 2432, rent: 534, gopRate: 60.8, laborRate: 9.3, payback: 5.6 },
   { name: '案例F', tier: '新一线', rooms: 127, adr: 505, occ: 81, revpar: 429, invest: 2671, rent: 683, gopRate: 52.4, laborRate: 15.8, payback: 7.6 },
-  { name: '案例G', tier: '二线', rooms: 112, adr: 474, occ: 86, revpar: 408, invest: 1933, rent: 584, gopRate: 50.8, laborRate: 13.2, payback: 7.0 }
+  { name: '案例G', tier: '二线', rooms: 112, adr: 474, occ: 86, revpar: 408, invest: 1933, rent: 584, gopRate: 50.8, laborRate: 13.2, payback: 7.0 },
+  // 景区度假酒店（雅致酒店真实案例）
+  { name: '微山岛雅致', tier: '景区度假', rooms: 60, adr: 800, occ: 60, revpar: 480, invest: 1500, rent: 0, gopRate: 62.0, laborRate: 16.0, payback: 2.3 },
+  { name: '青岛雅致', tier: '景区度假', rooms: 333, adr: 900, occ: 66, revpar: 594, invest: 9324, rent: 2142, gopRate: 58.0, laborRate: 14.5, payback: 5.5 }
 ];
 
 const OTA_COMMISSION_RATE = 0.15;
