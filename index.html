@@ -961,7 +961,7 @@ const RESORT_OVERRIDES = {
   label: '景区度假',
   desc: '景区度假酒店参考雅致酒店实际运营数据并上浮调整：ADR通常800-900元/间，首年入住率50-52%、成熟期60-66%，单房投入40-80万，非客房收入（餐饮/SPA/活动）贡献显著，可达客房收入的20-25%。OTA依赖度高（约55%），淡旺季差异极大。',
   // 渠道覆盖（旺季基准）
-  otaPct: 0.55, corpPct: 0.05, groupPct: 0.20, walkinPct: 0.10, directPct: 0.10,
+  otaPct: 0.55, corpPct: 0.05, groupPct: 0.25, walkinPct: 0.05, directPct: 0.10,
   // 成本参数绝对值override（基于雅致运营成本明细上浮10-15%，ADR基准800元）
   // 人工约95-108元/间夜→12.7%，能源约27-33元→3.8%，消耗品约34-42元→4.7%
   // 维修约2.2-3.8元→0.4%，洗涤约10-15元→1.6%，营销+管理+物业合计约5.0%
@@ -1078,18 +1078,18 @@ const SEASON_CLASS = ['low','low','shoulder','shoulder','peak','special','peak',
 
 // 每月客源结构微调（反映淡旺季渠道差异），全年平均接近基准值
 const MONTHLY_MIX_VARIATIONS = [
-  { ota: +0.04, walkin: -0.02, corp: -0.02 },                // 1月 淡季 OTA依赖↑
-  { ota: -0.02, walkin: +0.05, group: -0.03 },               // 2月 春节 散客↑
-  { ota: +0.02, walkin: -0.01, corp: -0.01 },                // 3月 恢复
-  { ota: -0.01, walkin: +0.02, group: -0.01 },               // 4月 清明 散客↑
-  { ota: -0.03, walkin: +0.03, group: +0.02, corp: -0.02 },  // 5月 五一 散客+团体↑
-  { ota: +0.02, walkin: +0.01, group: -0.02, corp: -0.01 },  // 6月 淡季 OTA↑
-  { ota: +0.04, walkin: +0.02, group: -0.03, corp: -0.03 },  // 7月 暑假 OTA+散客↑
-  { ota: +0.04, walkin: +0.02, group: -0.03, corp: -0.03 },  // 8月 暑假 OTA+散客↑
-  { ota: +0.01, walkin: -0.02, corp: +0.02, group: -0.01 },  // 9月 开学 商务恢复
-  { ota: -0.03, walkin: +0.04, group: -0.01 },               // 10月 国庆 散客↑
-  { ota: +0.03, walkin: -0.02, group: -0.01 },               // 11月 淡季 OTA↑
-  { ota: +0.02, walkin: -0.02, corp: +0.02, group: -0.02 },  // 12月 年末 商务↑
+  { ota: +0.05, walkin: -0.02, corp: -0.03 },                // 1月 淡季 OTA依赖↑
+  { ota: -0.03, walkin: +0.08, group: -0.05 },               // 2月 春节 散客大幅↑
+  { ota: +0.02, walkin: -0.02, corp: -0.01 },                // 3月 恢复
+  { ota: -0.01, walkin: +0.03, group: -0.02 },               // 4月 清明 散客↑
+  { ota: -0.03, walkin: +0.03, group: +0.03, corp: -0.03 },  // 5月 五一 散客+团体↑
+  { ota: +0.03, walkin: +0.01, group: -0.03, corp: -0.01 },  // 6月 淡季 OTA↑
+  { ota: +0.05, walkin: +0.02, group: -0.05, corp: -0.02 },  // 7月 暑假 OTA+散客↑
+  { ota: +0.05, walkin: +0.02, group: -0.05, corp: -0.02 },  // 8月 暑假 OTA+散客↑
+  { ota: +0.01, walkin: -0.02, corp: +0.03, group: -0.02 },  // 9月 开学 商务恢复
+  { ota: -0.04, walkin: +0.07, group: -0.03 },               // 10月 国庆 散客大幅↑
+  { ota: +0.04, walkin: -0.03, group: -0.01 },               // 11月 淡季 OTA↑
+  { ota: +0.03, walkin: -0.02, corp: +0.03, group: -0.04 },  // 12月 年末 商务↑
 ];
 function getMonthlyMix(baseOta, baseCorp, baseGroup, baseWalkin, baseDirect, monthIndex) {
   const v = MONTHLY_MIX_VARIATIONS[monthIndex] || {};
