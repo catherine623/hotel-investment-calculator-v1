@@ -1561,12 +1561,14 @@ function generateReport() {
       if (s.pct <= 0) return;
       const segHeightPx = Math.max(1, Math.round(totalHeightPx * s.pct));
       const pctLabel = (s.pct * 100).toFixed(0);
-      // 降低显示阈值：>=10px 就显示，极小值用横排文字
-      const showInside = segHeightPx >= 10;
-      const showOutside = segHeightPx < 10 && segHeightPx >= 3;
-      segHtml += `<div class="month-stack-segment" style="height:${segHeightPx}px;background:${chColors[s.key]};position:relative;" title="${chLabels[s.key]}: ${pctLabel}%">
-        ${showInside ? `<span style="display:block;text-align:center;line-height:${segHeightPx}px;font-size:8px;color:#fff;font-weight:600;opacity:0.95;">${pctLabel}%</span>` : ''}
-        ${showOutside ? `<span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-90deg);font-size:7px;color:#fff;font-weight:600;white-space:nowrap;opacity:0.95;">${pctLabel}%</span>` : ''}
+      // 三层显示策略：大色块正常文字 / 中等色块小字 / 小色块旋转文字
+      const showNormal = segHeightPx >= 16;           // ≥16px：8px 正常居中
+      const showSmall  = segHeightPx >= 9 && segHeightPx < 16;  // 9-15px：7px 小字
+      const showRotate = segHeightPx >= 4 && segHeightPx < 9;   // 4-8px：旋转90°
+      segHtml += `<div class="month-stack-segment" style="height:${segHeightPx}px;background:${chColors[s.key]};display:flex;align-items:center;justify-content:center;position:relative;" title="${chLabels[s.key]}: ${pctLabel}%">
+        ${showNormal ? `<span style="font-size:8px;color:#fff;font-weight:600;opacity:0.95;">${pctLabel}%</span>` : ''}
+        ${showSmall  ? `<span style="font-size:7px;color:#fff;font-weight:600;opacity:0.95;transform:scale(0.92);">${pctLabel}%</span>` : ''}
+        ${showRotate ? `<span style="position:absolute;font-size:7px;color:#fff;font-weight:600;white-space:nowrap;transform:rotate(-90deg);opacity:0.95;">${pctLabel}%</span>` : ''}
       </div>`;
     });
     monthlyHtml += `<div class="month-col">
