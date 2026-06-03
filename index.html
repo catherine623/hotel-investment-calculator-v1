@@ -1271,11 +1271,11 @@ function generateReport() {
     } else if (actualPayback <= tp.paybackFeasible) {
       heroVerdict.textContent = '🔶 有一定挑战';
       heroVerdict.className = 'hero-verdict challenging';
-      heroSub.textContent = `该城市等级参考回本周期为 ${tp.paybackDesc}，当前测算 ${actualPayback.toFixed(1)} 年处于合理范围。建议优化定价策略或控制运营成本以缩短回本周期。${resortFloat > 0 ? '（度假酒店波动大，实际约 ' + pbLow + '-' + pbHigh + ' 年）' : ''}`;
+      heroSub.textContent = `当前测算 ${actualPayback.toFixed(1)} 年处于合理范围。建议优化定价策略或控制运营成本以缩短回本周期。${resortFloat > 0 ? '（度假酒店波动大，实际约 ' + pbLow + '-' + pbHigh + ' 年）' : ''}`;
     } else {
       heroVerdict.textContent = '🔴 回本压力较大';
       heroVerdict.className = 'hero-verdict difficult';
-      heroSub.textContent = `该城市等级参考回本周期为 ${tp.paybackDesc}，当前测算 ${actualPayback.toFixed(1)} 年超出行业参考范围。建议重新评估投资规模、租金水平或选址。${resortFloat > 0 ? '（度假酒店波动大，实际约 ' + pbLow + '-' + pbHigh + ' 年）' : ''}`;
+      heroSub.textContent = `当前测算 ${actualPayback.toFixed(1)} 年超出行业参考范围。建议重新评估投资规模、租金水平或选址。${resortFloat > 0 ? '（度假酒店波动大，实际约 ' + pbLow + '-' + pbHigh + ' 年）' : ''}`;
     }
   }
 
@@ -1294,7 +1294,7 @@ function generateReport() {
     ${modeDesc ? '<span style="font-size:12px;color:var(--text-secondary);display:block;margin-top:4px;">🌊 <b>' + modeName + '模式说明</b>：' + modeDesc + '</span>' : ''}
     <span style="font-size:12px;color:var(--text-secondary);margin-top:4px;display:block;">
       测算城市等级：<b>${tp.label}</b>（${tp.cities}）&nbsp;|&nbsp;
-      典型 RevPAR：${tp.revparDesc} &nbsp;|&nbsp; 参考回本周期：${tp.paybackDesc} &nbsp;|&nbsp;
+      典型 RevPAR：${tp.revparDesc} &nbsp;|&nbsp;
       人工：${staffCount}人（人房比${effectiveStaffRatio}）&nbsp;|&nbsp;
       行业 GOP 率参考：${(gopRatio*100).toFixed(1)}%
     </span>
