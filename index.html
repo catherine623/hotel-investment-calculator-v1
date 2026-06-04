@@ -346,12 +346,16 @@ body {
 
 /* Monthly Grid */
 .monthly-grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 4px;
-  align-items: end;
-  height: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   margin-bottom: 12px;
+}
+.monthly-row {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  align-items: end;
 }
 .month-col {
   display: flex;
@@ -374,22 +378,25 @@ body {
   transition: height 0.3s;
   flex-shrink: 0;
 }
-.month-label { font-size: 10px; color: var(--text-muted); text-align: center; }
+.month-label { font-size: 11px; color: var(--text-muted); text-align: center; font-weight: 500; }
 .month-val { font-size: 9px; color: var(--text-muted); text-align: center; }
 
 .season-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  font-size: 11px;
+  gap: 12px 18px;
+  font-size: 12px;
   color: var(--text-muted);
-  margin-top: 6px;
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(0,0,0,0.02);
+  border-radius: var(--radius-sm);
 }
 .season-legend .dot {
-  width: 10px; height: 10px;
+  width: 11px; height: 11px;
   border-radius: 2px;
   display: inline-block;
-  margin-right: 4px;
+  margin-right: 6px;
   vertical-align: middle;
 }
 
@@ -521,14 +528,9 @@ body {
   .metric-card { padding: 10px 12px; }
   .metric-card .mval { font-size: 17px; }
 
-  /* Monthly grid */
-  .monthly-grid { height: auto; gap: 2px; }
-  .monthly-grid .monthly-row {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    height: 130px;
-  }
-  .month-label { font-size: 8px; }
+  /* Monthly grid - 统一布局，手机和桌面一致 */
+  .monthly-row { gap: 4px; }
+  .month-label { font-size: 9px; }
 
   /* Mix grid */
   .mix-grid { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 6px; }
@@ -1320,17 +1322,8 @@ function generateReport() {
     location ? `<span>📍 ${location}</span>` : `<span>📍 ${tp.label}酒店</span>`
   ].join('');
 
-  // ---- 城市定位分析 ----
-  const modeDesc = modeOverride ? modeOverride.desc : '';
-  document.getElementById('positioningCard').innerHTML = `
-    <strong>${tp.label}${modeName}市场定位</strong>&nbsp; ${tp.desc}<br>
-    ${modeDesc ? '<span style="font-size:12px;color:var(--text-secondary);display:block;margin-top:4px;">🌊 <b>' + modeName + '模式说明</b>：' + modeDesc + '</span>' : ''}
-    <span style="font-size:12px;color:var(--text-secondary);margin-top:4px;display:block;">
-      测算城市等级：<b>${tp.label}</b>（${tp.cities}）&nbsp;|&nbsp;
-      人工：${staffCount}人（人房比${effectiveStaffRatio}）&nbsp;|&nbsp;
-      行业 GOP 率参考：${(gopRatio*100).toFixed(1)}%
-    </span>
-  `;
+  // ---- 城市定位分析（已删除）----
+  document.getElementById('positioningCard').innerHTML = '';
 
   // ---- 关键指标 ----
   const occPct = refOcc.toFixed(1);
@@ -1626,7 +1619,9 @@ function generateReport() {
   const monthAvg = annualRev / 12;
   const chColors = { ota: '#e74c3c', corp: '#3498db', group: '#ff9800', walkin: '#2ecc71', direct: '#9b59b6' };
   const chLabels = { ota: 'OTA', corp: '大客户', group: '团体', walkin: '散客', direct: '自营' };
-  const BAR_MAX = isMobile ? 104 : 164;
+  // 所有模式：分两行显示，1-6月 + 7-12月（兼容手机和桌面）
+  // 使用一致的最大高度160px
+  const BAR_MAX = 160;
 
   // 先收集12个月的HTML片段
   const monthFragments = [];
@@ -1650,13 +1645,13 @@ function generateReport() {
       // 阈值分层：大色块正常显示 / 中等色块小字 / 小色块隐藏（避免拥挤，hover看tooltip）
       const showLabel = segHeightPx >= 18;           // ≥18px：正常显示
       const showTiny  = segHeightPx >= 10 && segHeightPx < 18;  // 10-17px：极小字
+      const fontSize = showLabel ? 10 : (showTiny ? 8 : 0);
       segHtml += `<div class="month-stack-segment" style="height:${segHeightPx}px;background:${chColors[s.key]};display:flex;align-items:center;justify-content:center;position:relative;" title="${chLabels[s.key]}: ${pctLabel}%">
-        ${showLabel ? `<span style="font-size:8px;color:#fff;font-weight:600;opacity:0.95;text-shadow:0 1px 2px rgba(0,0,0,0.3);">${pctLabel}%</span>` : ''}
-        ${showTiny  ? `<span style="font-size:6px;color:#fff;font-weight:600;opacity:0.95;text-shadow:0 1px 2px rgba(0,0,0,0.3);">${pctLabel}%</span>` : ''}
+        ${fontSize ? `<span style="font-size:${fontSize}px;color:#fff;font-weight:600;opacity:0.95;text-shadow:0 1px 2px rgba(0,0,0,0.3);">${pctLabel}%</span>` : ''}
       </div>`;
     });
     monthFragments.push(`<div class="month-col">
-      <div style="font-size:9px;font-weight:600;color:var(--text-secondary);text-align:center;margin-bottom:3px;white-space:nowrap;">¥${mthRev.toFixed(1)}万</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-align:center;margin-bottom:5px;white-space:nowrap;">¥${mthRev.toFixed(1)}万</div>
       <div class="month-stack" style="height:${Math.round(totalHeightPx)}px;">${segHtml}</div>
       <div class="month-label">${SEASON_LABELS[i]}</div>
     </div>`);
@@ -1664,7 +1659,7 @@ function generateReport() {
 
   // 所有模式：分两行显示，1-6月 + 7-12月（兼容手机和桌面）
   monthlyHtml = `<div class="monthly-row">${monthFragments.slice(0, 6).join('')}</div>`;
-  monthlyHtml += `<div class="monthly-row" style="margin-top:12px;">${monthFragments.slice(6, 12).join('')}</div>`;
+  monthlyHtml += `<div class="monthly-row">${monthFragments.slice(6, 12).join('')}</div>`;
   document.getElementById('monthlyGrid').innerHTML = monthlyHtml;
 
   // 更新季节图例（显示全年平均占比，各月实际会有波动）
