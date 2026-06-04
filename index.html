@@ -1207,17 +1207,35 @@ function generateReport() {
   const laborRatio = roomRevenue > 0 ? annualLaborYuan / 10000 / roomRevenue : tp.labor || 0.15;
 
   const otaCostPct = calcOtaCostPct(effectiveOtaPct);
-  const costItems = [
-    { key: 'otaComm', name: 'OTA平台佣金', pct: otaCostPct, color: '#e74c3c', note: `=15%佣率×${(effectiveOtaPct*100).toFixed(0)}%OTA渠道占比` },
-    { key: 'tax', name: '营业税及附加', pct: TAX_RATE, color: '#f39c12' },
-    { key: 'labor', name: '人工成本', pct: laborRatio, color: '#e91e63', note: `=${staffCount}人×月均¥${(monthlyLaborCost/1000).toFixed(1)}千÷客房收入` },
-    { key: 'energy', name: '能源费用（水电气）', pct: getParam('energy'), color: '#00acc1' },
-    { key: 'supplies', name: '客房消耗品', pct: getParam('supplies'), color: '#7c4dff' },
-    { key: 'maintenance', name: '维修维护费', pct: getParam('maintenance'), color: '#ff7043' },
-    { key: 'brandMgmt', name: '品牌管理费', pct: getParam('brandMgmt'), color: '#ab47bc', note: `=${(getParam('brandMgmt')*100).toFixed(0)}%×营业总收入（GMV），按月确认` },
-    { key: 'marketingOther', name: '市场推广（非OTA）', pct: tp.marketingOther, color: '#4caf50' },
-    { key: 'admin', name: '管理费用及其他', pct: tp.admin, color: '#5c6bc0' },
-  ];
+
+  // 度假酒店使用雅致运营成本明细的一级项目
+  let costItems;
+  if (isResortMode) {
+    costItems = [
+      { key: 'labor', name: '工资及福利', pct: laborRatio, color: '#e91e63' },
+      { key: 'energy', name: '能源费用', pct: getParam('energy'), color: '#00acc1' },
+      { key: 'supplies', name: '客用品消耗', pct: 0.036, color: '#7c4dff' },
+      { key: 'laundry', name: '洗涤费', pct: 0.011, color: '#8d6e63' },
+      { key: 'maintenance', name: '工程维修及维保费', pct: getParam('maintenance'), color: '#ff7043' },
+      { key: 'otaComm', name: '网络佣金（OTA）', pct: otaCostPct, color: '#e74c3c' },
+      { key: 'marketing', name: '营销费', pct: 0.012, color: '#4caf50' },
+      { key: 'brandMgmt', name: '品牌管理费', pct: getParam('brandMgmt'), color: '#ab47bc' },
+      { key: 'tax', name: '营业税及附加', pct: TAX_RATE, color: '#f39c12' },
+      { key: 'admin', name: '管理费用及其他', pct: getParam('admin'), color: '#5c6bc0' },
+    ];
+  } else {
+    costItems = [
+      { key: 'otaComm', name: 'OTA平台佣金', pct: otaCostPct, color: '#e74c3c', note: `=15%佣率×${(effectiveOtaPct*100).toFixed(0)}%OTA渠道占比` },
+      { key: 'tax', name: '营业税及附加', pct: TAX_RATE, color: '#f39c12' },
+      { key: 'labor', name: '人工成本', pct: laborRatio, color: '#e91e63', note: `=${staffCount}人×月均¥${(monthlyLaborCost/1000).toFixed(1)}千÷客房收入` },
+      { key: 'energy', name: '能源费用（水电气）', pct: getParam('energy'), color: '#00acc1' },
+      { key: 'supplies', name: '客房消耗品', pct: getParam('supplies'), color: '#7c4dff' },
+      { key: 'maintenance', name: '维修维护费', pct: getParam('maintenance'), color: '#ff7043' },
+      { key: 'brandMgmt', name: '品牌管理费', pct: getParam('brandMgmt'), color: '#ab47bc', note: `=${(getParam('brandMgmt')*100).toFixed(0)}%×营业总收入（GMV），按月确认` },
+      { key: 'marketingOther', name: '市场推广（非OTA）', pct: tp.marketingOther, color: '#4caf50' },
+      { key: 'admin', name: '管理费用及其他', pct: tp.admin, color: '#5c6bc0' },
+    ];
+  }
   const totalCostRatio = costItems.reduce((s, c) => s + c.pct, 0);
   const gopRatio = 1 - totalCostRatio;
 
@@ -1267,7 +1285,7 @@ function generateReport() {
     if (actualPayback <= tp.paybackGood) {
       heroVerdict.textContent = '✅ 投资可行';
       heroVerdict.className = 'hero-verdict feasible';
-      heroSub.textContent = `该城市等级优质回本区间为 ${tp.paybackDesc}，当前测算 ${actualPayback.toFixed(1)} 年处于优秀水平，项目可投性良好。${resortFloat > 0 ? '（度假酒店波动大，实际约 ' + pbLow + '-' + pbHigh + ' 年）' : ''}`;
+      heroSub.textContent = `当前测算 ${actualPayback.toFixed(1)} 年处于优秀水平，项目可投性良好。${resortFloat > 0 ? '（度假酒店波动大，实际约 ' + pbLow + '-' + pbHigh + ' 年）' : ''}`;
     } else if (actualPayback <= tp.paybackFeasible) {
       heroVerdict.textContent = '🔶 有一定挑战';
       heroVerdict.className = 'hero-verdict challenging';
