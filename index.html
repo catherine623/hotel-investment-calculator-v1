@@ -908,6 +908,7 @@ function switchHotelMode(mode) {
   } else {
     hint.textContent = '标准中档商务酒店，适用于城市商务及旅游市场';
     nonRoomHint.textContent = '餐饮、会议、停车场等非客房收入占客房收入的比例，中档酒店通常 3-8%';
+    if (parseFloat(nonRoomInput.value) < 3 || parseFloat(nonRoomInput.value) > 15) nonRoomInput.value = 5;
     if (resortDisclaimer) resortDisclaimer.style.display = 'none';
   }
 }
@@ -961,10 +962,10 @@ const TIER_PARAMS = {
 // ============================================================
 const RESORT_OVERRIDES = {
   label: '景区度假',
-  desc: '景区度假酒店参考雅致酒店实际运营数据并上浮调整：ADR通常800-900元/间，首年入住率50-52%、成熟期60-66%，单房投入40-80万，非客房收入（餐饮/SPA/活动）贡献显著，可达客房收入的20-25%。OTA依赖度高（约55%），淡旺季差异极大。',
+  desc: '景区度假酒店基于行业标杆运营数据并上浮调整：ADR通常800-900元/间，首年入住率50-52%、成熟期60-66%，单房投入40-80万，非客房收入（餐饮/SPA/活动）贡献显著，可达客房收入的20-25%。OTA依赖度高（约55%），淡旺季差异极大。',
   // 渠道覆盖（旺季基准）
   otaPct: 0.55, corpPct: 0.05, groupPct: 0.25, walkinPct: 0.05, directPct: 0.10,
-  // 成本参数绝对值override（基于雅致运营成本明细上浮10-15%，ADR基准800元）
+  // 成本参数绝对值override（基于行业运营数据上浮10-15%，ADR基准800元）
   // 人工约95-108元/间夜→12.7%，能源约27-33元→3.8%，消耗品约34-42元→4.7%
   // 维修约2.2-3.8元→0.4%，洗涤约10-15元→1.6%，营销+管理+物业合计约5.0%
   energyOverride: 0.038,        // 能源3.8%（泳池恒温、SPA、大面积公区空调）
@@ -986,9 +987,9 @@ const RESORT_OVERRIDES = {
 const ESPORT_OVERRIDES = {
   label: '电竞酒店',
   desc: '电竞酒店核心客群18-30岁（占比78%），OTA渠道依赖度高（约70%），私域流量（社群/抖音/微信）补充。设备投入大（单房电竞设备3-4.5万，单房总投入约10-15万），能源消耗显著高于普通酒店（24h高功耗PC+散热），设备维保成本低（质保期内）。',
-  // 渠道覆盖（参考IDJ爱电竞模型：OTA为主导渠道）
+  // 渠道覆盖（行业电竞模型：OTA为主导渠道）
   otaPct: 0.70, corpPct: 0.10, groupPct: 0.05, walkinPct: 0.05, directPct: 0.10,
-  // 成本覆盖（基于IDJ爱电竞3.0项目实际数据）
+  // 成本覆盖（基于行业电竞酒店实际数据）
   energyDelta: 0.045,      // 能源+4.5%（24h高功耗PC、散热、全时段空调）
   suppliesDelta: 0.012,     // 消耗品+1.2%（外设、零食饮料耗材）
   maintenanceDelta: -0.015, // 维护-1.5%（设备新、质保期内、维修费极低）
@@ -1012,11 +1013,11 @@ const BENCHMARK_CASES = [
   { name: '案例E', tier: '新一线', rooms: 110, adr: 510, occ: 79, revpar: 403, invest: 2432, rent: 534, gopRate: 60.8, laborRate: 9.3, payback: 5.6 },
   { name: '案例F', tier: '新一线', rooms: 127, adr: 505, occ: 81, revpar: 429, invest: 2671, rent: 683, gopRate: 52.4, laborRate: 15.8, payback: 7.6 },
   { name: '案例G', tier: '二线', rooms: 112, adr: 474, occ: 86, revpar: 408, invest: 1933, rent: 584, gopRate: 50.8, laborRate: 13.2, payback: 7.0 },
-  // 景区度假酒店（雅致酒店真实案例）
-  { name: '微山岛雅致', tier: '景区度假', rooms: 60, adr: 800, occ: 60, revpar: 480, invest: 1500, rent: 0, gopRate: 62.0, laborRate: 16.0, payback: 2.3 },
-  { name: '青岛雅致', tier: '景区度假', rooms: 333, adr: 900, occ: 66, revpar: 594, invest: 9324, rent: 2142, gopRate: 58.0, laborRate: 14.5, payback: 5.5 },
-  // 电竞酒店（IDJ爱电竞3.0项目数据）
-  { name: 'IDJ爱电竞', tier: '电竞酒店', rooms: 23, adr: 330, occ: 60, revpar: 198, invest: 260, rent: 0, gopRate: 50.0, laborRate: 22.8, payback: 6.3 }
+  // 景区度假酒店（行业案例）
+  { name: '景区度假案例A', tier: '景区度假', rooms: 60, adr: 800, occ: 60, revpar: 480, invest: 1500, rent: 0, gopRate: 62.0, laborRate: 16.0, payback: 2.3 },
+  { name: '景区度假案例B', tier: '景区度假', rooms: 333, adr: 900, occ: 66, revpar: 594, invest: 9324, rent: 2142, gopRate: 58.0, laborRate: 14.5, payback: 5.5 },
+  // 电竞酒店（行业案例数据）
+  { name: '电竞酒店案例', tier: '电竞酒店', rooms: 23, adr: 330, occ: 60, revpar: 198, invest: 260, rent: 0, gopRate: 50.0, laborRate: 22.8, payback: 6.3 }
 ];
 
 const OTA_COMMISSION_RATE = 0.15;
@@ -1225,7 +1226,7 @@ function generateReport() {
 
   const otaCostPct = calcOtaCostPct(effectiveOtaPct);
 
-  // 度假酒店使用雅致运营成本明细的一级项目
+  // 度假酒店使用行业运营成本明细的一级项目
   let costItems;
   if (isResortMode) {
     costItems = [
@@ -1235,12 +1236,26 @@ function generateReport() {
       { key: 'laundry', name: '洗涤费', pct: 0.011, color: '#8d6e63' },
       { key: 'maintenance', name: '工程维修及维保费', pct: getParam('maintenance'), color: '#ff7043' },
       { key: 'otaComm', name: '网络佣金（OTA）', pct: otaCostPct, color: '#e74c3c' },
-      { key: 'marketing', name: '营销费', pct: 0.012, color: '#4caf50' },
+      { key: 'marketing', name: '营销费（含物业绿化等）', pct: 0.030, color: '#4caf50' },
       { key: 'brandMgmt', name: '品牌管理费', pct: getParam('brandMgmt'), color: '#ab47bc' },
       { key: 'tax', name: '营业税及附加', pct: TAX_RATE, color: '#f39c12' },
       { key: 'admin', name: '管理费用及其他', pct: getParam('admin'), color: '#5c6bc0' },
     ];
+  } else if (currentHotelMode === 'esports') {
+    // 电竞酒店成本明细（基于行业实际数据）
+    costItems = [
+      { key: 'otaComm', name: 'OTA平台佣金', pct: otaCostPct, color: '#e74c3c', note: `=15%佣率×${(effectiveOtaPct*100).toFixed(0)}%OTA渠道占比` },
+      { key: 'tax', name: '营业税及附加', pct: TAX_RATE, color: '#f39c12' },
+      { key: 'labor', name: '人工成本', pct: laborRatio, color: '#e91e63', note: `=${staffCount}人（含24h前台/技术支持）` },
+      { key: 'energy', name: '能源费用（24h高功耗PC+散热）', pct: getParam('energy'), color: '#00acc1' },
+      { key: 'supplies', name: '外设耗材（键鼠/耳机/零食饮料）', pct: getParam('supplies'), color: '#7c4dff' },
+      { key: 'maintenance', name: '设备维保费（质保期内）', pct: getParam('maintenance'), color: '#ff7043' },
+      { key: 'brandMgmt', name: '品牌管理费', pct: getParam('brandMgmt'), color: '#ab47bc', note: `=${(getParam('brandMgmt')*100).toFixed(0)}%×营业总收入（GMV），按月确认` },
+      { key: 'marketingOther', name: '社群推广（抖音/微信/社群）', pct: 0.025, color: '#4caf50' },
+      { key: 'admin', name: '管理费用及其他', pct: tp.admin, color: '#5c6bc0' },
+    ];
   } else {
+    // 标准商务酒店成本明细
     costItems = [
       { key: 'otaComm', name: 'OTA平台佣金', pct: otaCostPct, color: '#e74c3c', note: `=15%佣率×${(effectiveOtaPct*100).toFixed(0)}%OTA渠道占比` },
       { key: 'tax', name: '营业税及附加', pct: TAX_RATE, color: '#f39c12' },
