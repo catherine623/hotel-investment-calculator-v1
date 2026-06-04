@@ -666,7 +666,7 @@ body {
         <option value="3">二线城市（长沙/合肥/昆明等）</option>
         <option value="4">三线及以下</option>
       </select>
-      <div class="unit">选择后自动匹配成本结构参考值</div>
+      <div class="unit" id="cityTierHint">选择后自动匹配成本结构参考值</div>
     </div>
     <div class="form-item">
       <label>具体城市 / 商圈</label>
@@ -890,6 +890,15 @@ function switchHotelMode(mode) {
   document.querySelectorAll('.mode-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.mode === mode);
   });
+  
+  // 根据模式显示/隐藏市场概览
+  const marketOverviewCard = document.getElementById('marketOverviewCard');
+  if (mode === 'resort' || mode === 'esports') {
+    marketOverviewCard.style.display = 'none';
+  } else {
+    marketOverviewCard.style.display = 'block';
+  }
+  
   const hint = document.getElementById('modeHint');
   const nonRoomHint = document.getElementById('nonRoomHint');
   const nonRoomInput = document.getElementById('nonRoomRevenuePct');
