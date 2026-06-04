@@ -1322,8 +1322,22 @@ function generateReport() {
     location ? `<span>📍 ${location}</span>` : `<span>📍 ${tp.label}酒店</span>`
   ].join('');
 
-  // ---- 城市定位分析（已删除）----
-  document.getElementById('positioningCard').innerHTML = '';
+  // ---- 城市定位分析（仅标准商务酒店显示）----
+  if (currentHotelMode === 'standard') {
+    const modeDesc = modeOverride ? modeOverride.desc : '';
+    document.getElementById('positioningCard').innerHTML = `
+      <strong>${tp.label}${modeName}市场定位</strong>&nbsp; ${tp.desc}<br>
+      ${modeDesc ? '<span style="font-size:12px;color:var(--text-secondary);display:block;margin-top:4px;">🌊 <b>' + modeName + '模式说明</b>：' + modeDesc + '</span>' : ''}
+      <span style="font-size:12px;color:var(--text-secondary);margin-top:4px;display:block;">
+        测算城市等级：<b>${tp.label}</b>（${tp.cities}）&nbsp;|&nbsp;
+        人工：${staffCount}人（人房比${effectiveStaffRatio}）&nbsp;|&nbsp;
+        行业 GOP 率参考：${(gopRatio*100).toFixed(1)}%
+      </span>
+    `;
+  } else {
+    // 度假酒店和电竞酒店隐藏市场定位
+    document.getElementById('positioningCard').innerHTML = '';
+  }
 
   // ---- 关键指标 ----
   const occPct = refOcc.toFixed(1);
