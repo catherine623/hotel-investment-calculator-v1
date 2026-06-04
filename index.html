@@ -1073,6 +1073,9 @@ function recalcInvestment() {
 
 const SEASONAL_FACTORS = [0.65, 0.70, 0.85, 0.95, 1.10, 1.00, 1.15, 1.20, 0.95, 1.10, 0.85, 0.80];
 const SEASON_LABELS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+
+// 冰雪度假城市列表（滑雪旺季为12月-2月，7-8月相对平季）
+const SNOW_RESORT_CITIES = ['哈尔滨', '长白山', '延吉', '漠河', '沈阳'];
 const SEASON_TAGS = ['淡季-元旦前','春节假期','两会-考研复试','清明-平季','五一黄金周','高考-毕业季','暑假-旅游旺季','暑假高峰','开学季','国庆黄金周','双11-淡季','年末-圣诞元旦'];
 const SEASON_CLASS = ['low','low','shoulder','shoulder','peak','special','peak','peak','shoulder','peak','low','low'];
 
@@ -1164,6 +1167,18 @@ function generateReport() {
     modeOverride = ESPORT_OVERRIDES;
     modeName = '电竞酒店';
     effectiveSeasonalFactors = ESPORT_OVERRIDES.seasonalFactors;
+  }
+
+  // ---- 冰雪度假城市季节性调整 ----
+  // 如果地点包含冰雪度假城市名称，调整季节性因子（12-2月旺季，7-8月平季）
+  if (location && SNOW_RESORT_CITIES.some(city => location.includes(city))) {
+    effectiveSeasonalFactors = effectiveSeasonalFactors.map((f, i) => {
+      // 12月(index 11)、1月(index 0)、2月(index 1) 提升20-30%
+      if (i === 11 || i === 0 || i === 1) return f * 1.25;
+      // 7月(index 6)、8月(index 7) 降低20-30%（相比滑雪旺季）
+      if (i === 6 || i === 7) return f * 0.75;
+      return f;
+    });
   }
 
   // 获取有效参数（基础 + 覆盖）
@@ -1647,13 +1662,9 @@ function generateReport() {
     </div>`);
   }
 
-  if (isMobile) {
-    // 手机端：分两行，1-6月 + 7-12月
-    monthlyHtml = `<div class="monthly-row">${monthFragments.slice(0, 6).join('')}</div>`;
-    monthlyHtml += `<div class="monthly-row" style="margin-top:8px;">${monthFragments.slice(6, 12).join('')}</div>`;
-  } else {
-    monthlyHtml = monthFragments.join('');
-  }
+  // 所有模式：分两行显示，1-6月 + 7-12月（兼容手机和桌面）
+  monthlyHtml = `<div class="monthly-row">${monthFragments.slice(0, 6).join('')}</div>`;
+  monthlyHtml += `<div class="monthly-row" style="margin-top:12px;">${monthFragments.slice(6, 12).join('')}</div>`;
   document.getElementById('monthlyGrid').innerHTML = monthlyHtml;
 
   // 更新季节图例（显示全年平均占比，各月实际会有波动）
