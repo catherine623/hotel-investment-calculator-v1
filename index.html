@@ -1147,10 +1147,7 @@ function updateAdminFee() {
   } else {
     customAdminFeeRate = parseFloat(val) / 100; // 转换为小数
   }
-  // 如果已有结果，重新生成报告以同步成本明细
-  if (document.getElementById('resultArea').style.display !== 'none') {
-    generateReport();
-  }
+  autoSave(); // 修改参数后自动保存，但不自动生成报告
 }
 
 // ============================================================
