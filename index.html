@@ -575,7 +575,6 @@ body {
   .mix-grid { grid-template-columns: repeat(3, 1fr); }
 }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
 <div class="page-wrap">
@@ -864,15 +863,6 @@ body {
       <span class="icon">🎯</span> 怎么干？ —— 达成目标的关键路径
     </div>
     <div class="guide-grid" id="guideGrid"></div>
-  </div>
-
-  <!-- 保存报告为图片 -->
-  <div id="saveImageArea" style="display:none;text-align:center;padding:24px 0 8px;">
-    <button id="saveImgBtn" onclick="saveReportAsImage()" style="display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border:none;border-radius:8px;background:var(--blue);color:#fff;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(27,107,138,0.25);transition:all 0.2s;font-family:inherit;">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      保存报告为图片
-    </button>
-    <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">长按图片可保存到手机相册</div>
   </div>
 
   <!-- 导出报告 + 数据导出/导入（始终可见） -->
@@ -1947,7 +1937,6 @@ function generateReport() {
 
   // 滚动到结果
   document.getElementById('heroCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  document.getElementById('saveImageArea').style.display = 'block';
   bumpUsage();
   autoSave(); // 生成报告后自动保存输入参数
 }
@@ -2359,60 +2348,6 @@ function showImportMsg(msg, type) {
     recalcDirectInvestment();
   }
 })();
-
-// 保存报告为图片
-// ============================================================
-function saveReportAsImage() {
-  const btn = document.getElementById('saveImgBtn');
-  const area = document.getElementById('resultArea');
-  btn.disabled = true;
-  btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;">⏳ 正在生成图片…</span>';
-
-  const saveArea = document.getElementById('saveImageArea');
-  saveArea.style.display = 'none';
-
-  html2canvas(area, {
-    scale: 2,
-    useCORS: true,
-    backgroundColor: '#f9f8f5',
-    logging: false,
-    windowWidth: area.scrollWidth,
-    windowHeight: area.scrollHeight,
-  }).then(canvas => {
-    saveArea.style.display = 'block';
-    btn.disabled = false;
-    btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 保存报告为图片';
-
-    const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;overflow:auto;';
-    overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
-
-    const img = document.createElement('img');
-    img.src = canvas.toDataURL('image/png');
-    img.style.cssText = 'max-width:100%;max-height:80vh;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,0.3);';
-    img.onclick = function(e) { e.stopPropagation(); };
-
-    const hint = document.createElement('div');
-    hint.style.cssText = 'color:#fff;font-size:14px;margin-top:16px;text-align:center;line-height:1.6;';
-    hint.innerHTML = '📱 <b>长按图片</b>即可保存到手机相册<br><span style="font-size:12px;opacity:0.7;">点击空白区域关闭</span>';
-
-    const closeBtn = document.createElement('div');
-    closeBtn.style.cssText = 'margin-top:12px;padding:8px 24px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);border-radius:20px;color:#fff;font-size:13px;cursor:pointer;';
-    closeBtn.textContent = '关闭';
-    closeBtn.onclick = function() { overlay.remove(); };
-
-    overlay.appendChild(img);
-    overlay.appendChild(hint);
-    overlay.appendChild(closeBtn);
-    document.body.appendChild(overlay);
-  }).catch(err => {
-    saveArea.style.display = 'block';
-    btn.disabled = false;
-    btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 保存报告为图片';
-    alert('生成图片失败，请重试');
-  });
-}
-
 </script>
 </body>
 </html>
