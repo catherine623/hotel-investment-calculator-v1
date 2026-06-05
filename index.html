@@ -875,6 +875,16 @@ body {
     <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">长按图片可保存到手机相册</div>
   </div>
 
+  <!-- 数据导出/导入（始终可见） -->
+  <div style="text-align:center;padding:16px 0 8px;">
+    <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+      <button onclick="exportDataJSON()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border:1px solid var(--card-border);border-radius:6px;background:#fff;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--card-border)';this.style.color='var(--text-secondary)'">📤 导出测算数据</button>
+      <button onclick="document.getElementById('importFileInput').click()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border:1px solid var(--card-border);border-radius:6px;background:#fff;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--card-border)';this.style.color='var(--text-secondary)'">📥 导入测算数据</button>
+      <input type="file" id="importFileInput" accept=".json" style="display:none;" onchange="importDataJSON(this)">
+    </div>
+    <div id="importMsg" style="font-size:11px;color:var(--text-muted);margin-top:6px;display:none;"></div>
+  </div>
+
 </div>
 
 <!-- Footer -->
@@ -890,6 +900,7 @@ body {
 // ============================================================
 let currentHotelMode = 'standard'; // standard | resort | esports
 let customAdminFeeRate = null; // 用户自定义管理费率（null=使用默认值）
+let currentInvestMode = 'detail'; // detail | direct
 
 function switchHotelMode(mode) {
   currentHotelMode = mode;
@@ -935,6 +946,7 @@ function switchHotelMode(mode) {
     if (adminFeeInput) { adminFeeInput.value = 4; adminFeeInput.placeholder = '默认4%（品牌管理费）'; }
     if (adminFeeHint) adminFeeHint.textContent = '品牌方收取的管理费占营业总收入（GMV）的比例，通常3-5%';
   }
+  autoSave();
 }
 
 // ============================================================
@@ -1052,6 +1064,7 @@ function calcOtaCostPct(otaChannelPct) { return OTA_COMMISSION_RATE * otaChannel
 
 // 切换投入输入模式
 function switchInvestMode(mode) {
+  currentInvestMode = mode;
   const tabs = document.querySelectorAll('.invest-tab');
   tabs.forEach(t => {
     if (t.dataset.mode === mode) {
@@ -1066,6 +1079,7 @@ function switchInvestMode(mode) {
   document.getElementById('investDirectFields').style.display = mode === 'direct' ? 'block' : 'none';
   if (mode === 'detail') recalcInvestment();
   else recalcDirectInvestment();
+  autoSave();
 }
 
 function recalcDirectInvestment() {
@@ -1934,6 +1948,7 @@ function generateReport() {
   document.getElementById('heroCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
   document.getElementById('saveImageArea').style.display = 'block';
   bumpUsage();
+  autoSave(); // 生成报告后自动保存输入参数
 }
 
 // ============================================================
@@ -1943,6 +1958,7 @@ const COUNTER_NS = 'hotel-invest-calc';
 const COUNTER_KEY = 'total-usage';
 const COUNTER_URL_UP = `https://api.counterapi.dev/v1/${COUNTER_NS}/${COUNTER_KEY}/up`;
 const COUNTER_URL_GET = `https://api.counterapi.dev/v1/${COUNTER_NS}/${COUNTER_KEY}`;
+const COUNTER_STORAGE_KEY = 'hotelCalcCachedGlobalCount';
 const COUNTER_TIMEOUT = 3000;
 
 function updateUsageBadge(count) {
@@ -1960,24 +1976,23 @@ function fetchWithTimeout(url, timeout) {
 }
 
 (function initGlobalUsage() {
+  // 优先显示上次缓存的全局计数（跨设备）
   try {
-    const localCount = parseInt(localStorage.getItem('hotelCalcUsage') || '0', 10);
-    if (localCount > 0) updateUsageBadge(localCount);
+    const cached = parseInt(localStorage.getItem(COUNTER_STORAGE_KEY) || '0', 10);
+    if (cached > 0) updateUsageBadge(cached);
   } catch(e) {}
 
+  // 异步拉取最新全局计数
   fetchWithTimeout(COUNTER_URL_GET, COUNTER_TIMEOUT)
     .then(r => r.json())
     .then(data => {
       if (data && typeof data.count === 'number') {
         updateUsageBadge(data.count);
-        try { localStorage.setItem('hotelCalcGlobalUsage', data.count); } catch(e) {}
+        try { localStorage.setItem(COUNTER_STORAGE_KEY, data.count); } catch(e) {}
       }
     })
     .catch(() => {
-      try {
-        const cached = parseInt(localStorage.getItem('hotelCalcGlobalUsage') || '0', 10);
-        if (cached > 0) updateUsageBadge(cached);
-      } catch(e) {}
+      // API 不可用，继续显示缓存值，不做伪个人计数
     });
 })();
 
@@ -1987,23 +2002,153 @@ function bumpUsage() {
     .then(data => {
       if (data && typeof data.count === 'number') {
         updateUsageBadge(data.count);
-        try {
-          localStorage.setItem('hotelCalcGlobalUsage', data.count);
-          localStorage.setItem('hotelCalcUsage', data.count);
-        } catch(e) {}
+        try { localStorage.setItem(COUNTER_STORAGE_KEY, data.count); } catch(e) {}
       }
     })
     .catch(() => {
-      try {
-        let count = parseInt(localStorage.getItem('hotelCalcUsage') || '0', 10);
-        count += 1;
-        localStorage.setItem('hotelCalcUsage', count);
-        updateUsageBadge(count);
-      } catch(e) {}
+      // API 不可用，不伪造个人计数，下次成功时自然更新
     });
 }
 
 // ============================================================
+// ============================================================
+// 数据持久化：自动保存 / JSON 导出导入
+// ============================================================
+const SAVE_KEY = 'hotelCalcSavedState';
+// 所有需要保存/恢复的输入控件
+const TRACKED_INPUT_IDS = [
+  'cityTier', 'location', 'roomCount',
+  'perRoomInvest', 'publicRenovation', 'designFee', 'franchiseFee', 'otherFees',
+  'directInvestment', 'annualRent', 'referencePrice', 'referenceOccupancy',
+  'nonRoomRevenuePct', 'adminFeeRate'
+];
+
+function collectState() {
+  const state = { _v: 1, _ts: Date.now(), hotelMode: currentHotelMode, investMode: currentInvestMode };
+  TRACKED_INPUT_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    state[id] = (el.tagName === 'SELECT') ? el.value : el.value.trim();
+  });
+  return state;
+}
+
+let _autoSaveTimer = null;
+function autoSave() {
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(() => {
+    try {
+      const state = collectState();
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    } catch(e) {}
+  }, 500);
+}
+
+function restoreState() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const state = JSON.parse(raw);
+    if (!state || state._v !== 1) return false;
+    // 恢复酒店模式
+    if (state.hotelMode && ['standard','resort','esports'].includes(state.hotelMode)) {
+      switchHotelMode(state.hotelMode);
+    }
+    // 恢复投资模式
+    if (state.investMode && ['detail','direct'].includes(state.investMode)) {
+      if (state.investMode !== currentInvestMode) switchInvestMode(state.investMode);
+    }
+    // 恢复输入值
+    TRACKED_INPUT_IDS.forEach(id => {
+      if (state[id] === undefined || state[id] === null) return;
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.value = state[id];
+      // 触发关联计算
+      if (id === 'perRoomInvest' || id === 'publicRenovation' || id === 'designFee' || id === 'franchiseFee' || id === 'otherFees') {
+        recalcInvestment();
+      }
+      if (id === 'directInvestment') recalcDirectInvestment();
+    });
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+function exportDataJSON() {
+  const state = collectState();
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '酒店投资测算数据_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showImportMsg('数据已导出，可发送给他人导入复用', 'success');
+}
+
+function importDataJSON(fileInput) {
+  const file = fileInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const state = JSON.parse(e.target.result);
+      if (!state || state._v !== 1) { showImportMsg('文件格式不正确', 'error'); return; }
+      // 恢复酒店模式
+      if (state.hotelMode && ['standard','resort','esports'].includes(state.hotelMode)) {
+        switchHotelMode(state.hotelMode);
+      }
+      // 恢复投资模式
+      if (state.investMode && ['detail','direct'].includes(state.investMode)) {
+        if (state.investMode !== currentInvestMode) switchInvestMode(state.investMode);
+      }
+      // 恢复输入值
+      TRACKED_INPUT_IDS.forEach(id => {
+        if (state[id] === undefined || state[id] === null) return;
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.value = state[id];
+      });
+      recalcInvestment();
+      recalcDirectInvestment();
+      // 同时保存到本地
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+      showImportMsg('数据导入成功！已自动填充所有参数', 'success');
+    } catch(err) {
+      showImportMsg('文件解析失败，请确认是有效的测算数据文件', 'error');
+    }
+  };
+  reader.readAsText(file);
+  fileInput.value = '';
+}
+
+function showImportMsg(msg, type) {
+  const el = document.getElementById('importMsg');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.color = type === 'error' ? '#e24b4a' : '#639922';
+  setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+// 绑定自动保存事件
+(function setupAutoSave() {
+  TRACKED_INPUT_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', autoSave);
+    el.addEventListener('change', autoSave);
+  });
+  // 恢复上次保存的状态
+  if (restoreState()) {
+    // 重新计算投资总额（因为值已恢复）
+    recalcInvestment();
+    recalcDirectInvestment();
+  }
+})();
+
 // 保存报告为图片
 // ============================================================
 function saveReportAsImage() {
