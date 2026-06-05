@@ -875,11 +875,12 @@ body {
     <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">长按图片可保存到手机相册</div>
   </div>
 
-  <!-- 数据导出/导入（始终可见） -->
+  <!-- 导出报告 + 数据导出/导入（始终可见） -->
   <div style="text-align:center;padding:16px 0 8px;">
     <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
-      <button onclick="exportDataJSON()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border:1px solid var(--card-border);border-radius:6px;background:#fff;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--card-border)';this.style.color='var(--text-secondary)'">📤 导出测算数据</button>
-      <button onclick="document.getElementById('importFileInput').click()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border:1px solid var(--card-border);border-radius:6px;background:#fff;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--card-border)';this.style.color='var(--text-secondary)'">📥 导入测算数据</button>
+      <button onclick="exportReport()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border:1px solid var(--accent);border-radius:6px;background:#fff;color:var(--accent);font-size:13px;cursor:pointer;font-family:inherit;transition:all 0.2s;font-weight:500;" onmouseover="this.style.background='var(--accent)';this.style.color='#fff'" onmouseout="this.style.background='#fff';this.style.color='var(--accent)'">📄 导出报告</button>
+      <button onclick="exportDataJSON()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border:1px solid var(--card-border);border-radius:6px;background:#fff;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--card-border)';this.style.color='var(--text-secondary)'">📤 导出数据（备份用）</button>
+      <button onclick="document.getElementById('importFileInput').click()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border:1px solid var(--card-border);border-radius:6px;background:#fff;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--card-border)';this.style.color='var(--text-secondary)'">📥 导入数据</button>
       <input type="file" id="importFileInput" accept=".json" style="display:none;" onchange="importDataJSON(this)">
     </div>
     <div id="importMsg" style="font-size:11px;color:var(--text-muted);margin-top:6px;display:none;"></div>
@@ -2124,6 +2125,216 @@ function importDataJSON(fileInput) {
   fileInput.value = '';
 }
 
+// ============================================================
+// 导出可视化报告（HTML格式，手机友好）
+// ============================================================
+function exportReport() {
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth()+1, d = now.getDate();
+  const dateStr = y + '年' + m + '月' + d + '日';
+  const fname = '酒店投资测算报告_' + y + (m<10?'0':'') + m + (d<10?'0':'') + d + '.html';
+
+  // ---- 酒店类型标签 ----
+  const hotelModeLabels = {
+    standard: '标准酒店（中端/经济型）',
+    resort:  '景区度假酒店',
+    esports: '电竞酒店'
+  };
+  const hotelModeLabel = hotelModeLabels[currentHotelMode] || currentHotelMode;
+
+  // ---- 城市等级标签 ----
+  const cityTierVal = document.getElementById('cityTier').value;
+  const cityTierLabels = { '':'未选择','1':'一线城市','2':'新一线/强二线','3':'二线城市','4':'三线城市','5':'四线及以下' };
+  const cityTierLabel = cityTierLabels[cityTierVal] || cityTierVal;
+
+  // ---- 地理位置标签 ----
+  const locVal = document.getElementById('location').value;
+  const locLabels = { '':'未选择','center':'城市核心区','transport':'交通枢纽/会展','scenic':'景区周边','suburb':'郊区','campus':'高校/产业园' };
+  const locLabel = locLabels[locVal] || locVal;
+
+  // ---- 读取输入参数 ----
+  const getVal = id => {
+    const el = document.getElementById(id);
+    return el ? (el.value.trim() || '--') : '--';
+  };
+  const p = {
+    rooms:       getVal('roomCount'),
+    perRoomInv:   getVal('perRoomInvest'),
+    pubRenew:     getVal('publicRenovation'),
+    designFee:    getVal('designFee'),
+    franchiseFee: getVal('franchiseFee'),
+    otherFees:    getVal('otherFees'),
+    directInv:    getVal('directInvestment'),
+    rent:         getVal('annualRent'),
+    refPrice:      getVal('referencePrice'),
+    refOcc:       getVal('referenceOccupancy'),
+    nonRoomPct:   getVal('nonRoomRevenuePct'),
+    adminFee:     getVal('adminFeeRate')
+  };
+
+  // ---- 读取计算结果（从DOM）----
+  const paybackEl  = document.getElementById('heroPayback');
+  const verdictEl  = document.getElementById('heroVerdict');
+  const subEl      = document.getElementById('heroSub');
+  const summaryEl  = document.getElementById('heroSummary');
+  const paybackText = paybackEl ? paybackEl.textContent.trim() : '--';
+  const verdictText = verdictEl ? verdictEl.textContent.trim() : '';
+  const subText     = subEl     ? subEl.textContent.trim()     : '';
+  const summaryText = summaryEl ? summaryEl.textContent.trim() : '';
+
+  // 判断结论样式
+  let verdictClass = 'neutral';
+  if (verdictText.includes('可行'))     verdictClass = 'feasible';
+  else if (verdictText.includes('挑战')) verdictClass = 'challenging';
+  else if (verdictText.includes('难以') || verdictText.includes('不可行')) verdictClass = 'difficult';
+
+  // ---- 读取报告区域内容 ----
+  const costHTML   = (document.getElementById('costContent')   || {}).innerHTML || '';
+  const benchHTML  = (document.getElementById('benchmarkContent') || {}).innerHTML || '';
+  const guideHTML  = (document.getElementById('guideGrid')     || {}).innerHTML || '';
+  const investHTML = (document.getElementById(currentInvestMode === 'direct' ? 'directPanel' : 'investmentPanel') || {}).innerHTML || '';
+
+  // ---- 组装报告 HTML ----
+  const reportHTML = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>酒店投资测算报告</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif; font-size:14px; line-height:1.6; color:#1a1a1a; background:#f5f3ef; }
+  .wrap { max-width:800px; margin:0 auto; background:#fff; }
+  /* 头部 */
+  .header { background:linear-gradient(135deg,#1b6b8a 0%,#155670 100%); color:#fff; padding:28px 20px; text-align:center; }
+  .header h1 { font-size:20px; font-weight:600; margin-bottom:6px; }
+  .header .sub { font-size:13px; opacity:0.85; }
+  /* 区块 */
+  .sec { padding:20px 16px; border-bottom:1px solid rgba(0,0,0,0.08); }
+  .sec:last-child { border-bottom:none; }
+  .sec-title { font-size:16px; font-weight:600; color:#1b6b8a; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+  /* 参数表格 */
+  .ptbl { width:100%; border-collapse:collapse; font-size:13px; }
+  .ptbl th { text-align:left; padding:9px 12px; background:#f5f3ef; color:#555; font-weight:500; width:40%; }
+  .ptbl td { padding:9px 12px; border-top:1px solid rgba(0,0,0,0.05); color:#1a1a1a; }
+  .ptbl tr:nth-child(even) td { background:#fafaf7; }
+  /* 结论卡片 */
+  .verdict { border-radius:10px; padding:18px 16px; margin:14px 0; text-align:center; font-size:15px; font-weight:500; line-height:1.8; }
+  .verdict.feasible    { background:#e8f5e9; color:#2d6a4f; }
+  .verdict.challenging { background:#fff8e1; color:#b8690a; }
+  .verdict.difficult   { background:#ffebee; color:#c0392b; }
+  .verdict.neutral     { background:#f0f4f6; color:#1b6b8a; }
+  /* 继承原页面样式片段 */
+  .cost-bar-wrap { margin:10px 0; }
+  .cost-bar-bg { height:18px; border-radius:9px; background:rgba(0,0,0,0.06); overflow:hidden; display:flex; }
+  .cost-bar-fg { height:100%; transition:width 0.4s; }
+  .cost-legend { display:flex; flex-wrap:wrap; gap:6px 14px; font-size:12px; margin-top:8px; color:#555; }
+  .cost-num { font-size:13px; color:#333; line-height:1.8; }
+  .bench-table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .bench-table { width:100%; border-collapse:collapse; font-size:13px; white-space:nowrap; }
+  .bench-table th { background:#f5f3ef; padding:8px 12px; font-weight:500; color:#555; }
+  .bench-table td { padding:7px 12px; border-top:1px solid rgba(0,0,0,0.05); text-align:center; }
+  .bench-min { color:#c0392b; }
+  .bench-avg { color:#b8690a; }
+  .bench-max { color:#1b6b8a; }
+  .bench-user { color:#2d6a4f; font-weight:600; }
+  .guide-card { background:#f5f3ef; border-radius:10px; padding:14px 16px; margin-bottom:10px; }
+  .guide-card:last-child { margin-bottom:0; }
+  .g-icon { font-size:18px; margin-bottom:4px; }
+  .g-title { font-size:14px; font-weight:600; margin-bottom:6px; color:#1b6b8a; }
+  .g-text { font-size:13px; color:#333; line-height:1.7; }
+  .g-highlight { display:inline-block; margin-top:6px; padding:4px 10px; background:#e8f2f6; border-radius:6px; color:#1b6b8a; font-size:12px; }
+  .inv-row { display:flex; justify-content:space-between; font-size:13px; padding:6px 0; border-bottom:1px solid rgba(0,0,0,0.05); }
+  .inv-row:last-child { border-bottom:none; }
+  .inv-label { color:#555; }
+  .inv-val { font-weight:500; color:#1a1a1a; }
+  .inv-total { font-weight:600; color:#1b6b8a; font-size:15px; }
+  /* 页脚 */
+  .footer { padding:16px; text-align:center; font-size:11px; color:#888; background:#f5f3ef; line-height:1.8; }
+  @media print { body{background:#fff;} .wrap{box-shadow:none;} }
+  @media (max-width:600px) {
+    .ptbl th, .ptbl td { padding:7px 8px; font-size:12px; }
+    .sec { padding:16px 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- 头部 -->
+  <div class="header">
+    <h1>🏨 酒店投资测算报告</h1>
+    <div class="sub">${dateStr} &nbsp;|&nbsp; ${hotelModeLabel}</div>
+  </div>
+
+  <!-- 项目参数 -->
+  <div class="sec">
+    <div class="sec-title">📋 项目参数</div>
+    <table class="ptbl">
+      <tr><th>酒店类型</th><td>${hotelModeLabel}</td></tr>
+      <tr><th>城市等级</th><td>${cityTierLabel}</td></tr>
+      <tr><th>地理位置</th><td>${locLabel}</td></tr>
+      <tr><th>房间数</th><td>${p.rooms} 间</td></tr>
+      ${currentInvestMode === 'detail'
+        ? `<tr><th>单房投资</th><td>¥${p.perRoomInv} 万元/间</td></tr>
+           <tr><th>公区翻新</th><td>¥${p.pubRenew} 万元</td></tr>
+           <tr><th>设计费</th><td>¥${p.designFee} 万元</td></tr>
+           <tr><th>加盟费</th><td>¥${p.franchiseFee} 万元</td></tr>
+           <tr><th>其他费用</th><td>¥${p.otherFees} 万元</td></tr>`
+        : `<tr><th>总投资额</th><td>¥${p.directInv} 万元</td></tr>`
+      }
+      <tr><th>年租金</th><td>¥${p.rent} 万元/年</td></tr>
+      <tr><th>参考房价</th><td>¥${p.refPrice} 元/间/晚</td></tr>
+      <tr><th>参考入住率</th><td>${p.refOcc}%</td></tr>
+      <tr><th>非客房收入占比</th><td>${p.nonRoomPct}%</td></tr>
+      <tr><th>管理费率</th><td>${p.adminFee}%</td></tr>
+    </table>
+  </div>
+
+  <!-- 测算结论 -->
+  <div class="sec">
+    <div class="sec-title">🎯 测算结论</div>
+    <div class="verdict ${verdictClass}">
+      <div style="font-size:28px;font-weight:700;margin-bottom:8px;">${paybackText}</div>
+      <div>${verdictText}</div>
+      ${subText ? '<div style="font-size:13px;margin-top:8px;font-weight:400;line-height:1.7;">' + subText + '</div>' : ''}
+      ${summaryText ? '<div style="font-size:12px;margin-top:10px;font-weight:400;opacity:0.85;">' + summaryText + '</div>' : ''}
+    </div>
+  </div>
+
+  <!-- 投资构成 -->
+  ${investHTML ? `<div class="sec"><div class="sec-title">🏗️ 投资构成</div><div>${investHTML}</div></div>` : ''}
+
+  <!-- 成本结构 -->
+  ${costHTML ? `<div class="sec"><div class="sec-title">💰 运营成本结构</div><div>${costHTML}</div></div>` : ''}
+
+  <!-- 行业基准 -->
+  ${benchHTML ? `<div class="sec"><div class="sec-title">📊 行业基准参考</div><div>${benchHTML}</div></div>` : ''}
+
+  <!-- 关键路径 -->
+  ${guideHTML ? `<div class="sec"><div class="sec-title">🗺️ 关键路径建议</div><div>${guideHTML}</div></div>` : ''}
+
+  <!-- 页脚 -->
+  <div class="footer">
+    本报告由「酒店投资回报计算器」自动生成<br>
+    数据模型基于行业公开数据与市场调研校准，测算结果仅供参考<br>
+    生成时间：${dateStr}
+  </div>
+</div>
+</body>
+</html>`;
+
+  // ---- 触发下载 ----
+  const blob = new Blob([reportHTML], { type: 'text/html;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = fname;
+  a.click();
+  URL.revokeObjectURL(url);
+  showImportMsg('报告已导出，用浏览器打开即可查看打印', 'success');
+}
+
+// ============================================================
 function showImportMsg(msg, type) {
   const el = document.getElementById('importMsg');
   if (!el) return;
