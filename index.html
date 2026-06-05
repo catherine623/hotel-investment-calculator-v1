@@ -756,6 +756,11 @@ body {
       <input type="number" id="nonRoomRevenuePct" placeholder="例如：5" min="0" max="30" step="0.1" value="5">
       <div class="unit" id="nonRoomHint">餐饮、会议、停车场等非客房收入占客房收入的比例，中档酒店通常 3-8%</div>
     </div>
+    <div class="form-item">
+      <label>管理费率（%）</label>
+      <input type="number" id="adminFeeRate" placeholder="默认4%（品牌管理费）" min="0" max="20" step="0.1" value="" oninput="updateAdminFee()">
+      <div class="unit">品牌方收取的管理费占客房收入的比例，通常3-8%</div>
+    </div>
   </div>
   <input type="hidden" id="totalInvestment" value="2000">
   <button class="gen-btn" onclick="generateReport()">生成投资测算报告</button>
@@ -884,9 +889,11 @@ body {
 // 酒店类型模式
 // ============================================================
 let currentHotelMode = 'standard'; // standard | resort | esports
+let customAdminFeeRate = null; // 用户自定义管理费率（null=使用默认值）
 
 function switchHotelMode(mode) {
   currentHotelMode = mode;
+  customAdminFeeRate = null; // 切换模式时重置自定义管理费率
   document.querySelectorAll('.mode-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.mode === mode);
   });
@@ -903,22 +910,30 @@ function switchHotelMode(mode) {
   const nonRoomHint = document.getElementById('nonRoomHint');
   const nonRoomInput = document.getElementById('nonRoomRevenuePct');
   const resortDisclaimer = document.getElementById('resortDisclaimer');
+  const adminFeeInput = document.getElementById('adminFeeRate');
+  const adminFeeHint = adminFeeInput ? adminFeeInput.nextElementSibling : null;
 
   if (mode === 'resort') {
     hint.innerHTML = '🏖 <b>景区度假模式</b>：OTA依赖度高、旅行社团体客占比大、非客房收入贡献显著、季节性波动强';
     nonRoomHint.textContent = '度假酒店非客房收入较高（餐饮/活动/SPA），通常 20-25%';
     if (parseFloat(nonRoomInput.value) < 20) nonRoomInput.value = 20;
     if (resortDisclaimer) resortDisclaimer.style.display = '';
+    if (adminFeeInput) { adminFeeInput.value = 5; adminFeeInput.placeholder = '默认5%（度假品牌管理费）'; }
+    if (adminFeeHint) adminFeeHint.textContent = '度假酒店品牌管理费，通常4-6%（按营业总收入GMV计）';
   } else if (mode === 'esports') {
     hint.innerHTML = '🎮 <b>电竞酒店模式</b>：OTA渠道主导（约70%）、设备投入大（单房10-15万）、能耗显著高于普通酒店（24h高功耗PC）、非客房收入(零食/外设)';
     nonRoomHint.textContent = '电竞酒店非客房收入（零食/外设/饮料），通常 10-15%';
     if (parseFloat(nonRoomInput.value) < 10) nonRoomInput.value = 10;
     if (resortDisclaimer) resortDisclaimer.style.display = 'none';
+    if (adminFeeInput) { adminFeeInput.value = 4; adminFeeInput.placeholder = '默认4%（电竞品牌管理费）'; }
+    if (adminFeeHint) adminFeeHint.textContent = '电竞酒店品牌管理费，通常3-5%（按营业总收入GMV计）';
   } else {
     hint.textContent = '标准中档商务酒店，适用于城市商务及旅游市场';
     nonRoomHint.textContent = '餐饮、会议、停车场等非客房收入占客房收入的比例，中档酒店通常 3-8%';
     if (parseFloat(nonRoomInput.value) < 3 || parseFloat(nonRoomInput.value) > 15) nonRoomInput.value = 5;
     if (resortDisclaimer) resortDisclaimer.style.display = 'none';
+    if (adminFeeInput) { adminFeeInput.value = 4; adminFeeInput.placeholder = '默认4%（品牌管理费）'; }
+    if (adminFeeHint) adminFeeHint.textContent = '品牌方收取的管理费占营业总收入（GMV）的比例，通常3-5%';
   }
 }
 
@@ -1118,6 +1133,22 @@ function getMonthlyMix(baseOta, baseCorp, baseGroup, baseWalkin, baseDirect, mon
 }
 
 // ============================================================
+// 管理费率更新 → 同步修改运营成本明细
+// ============================================================
+function updateAdminFee() {
+  const val = document.getElementById('adminFeeRate').value.trim();
+  if (val === '' || isNaN(parseFloat(val))) {
+    customAdminFeeRate = null; // 清空则恢复默认
+  } else {
+    customAdminFeeRate = parseFloat(val) / 100; // 转换为小数
+  }
+  // 如果已有结果，重新生成报告以同步成本明细
+  if (document.getElementById('resultArea').style.display !== 'none') {
+    generateReport();
+  }
+}
+
+// ============================================================
 // 城市等级变化 → 更新提示
 // ============================================================
 function onCityTierChange() {
@@ -1195,6 +1226,8 @@ function generateReport() {
 
   // 获取有效参数（基础 + 覆盖）
   const getParam = (key) => {
+    // 用户自定义管理费率优先级最高（覆盖brandMgmt）
+    if (customAdminFeeRate !== null && key === 'brandMgmt') return customAdminFeeRate;
     if (modeOverride) {
       // 绝对值override优先（度假酒店用）
       if (modeOverride[key + 'Override'] !== undefined) return modeOverride[key + 'Override'];
