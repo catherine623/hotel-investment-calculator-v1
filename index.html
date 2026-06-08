@@ -867,13 +867,15 @@ body {
 
   <!-- 导出报告 + 数据导出/导入（始终可见） -->
   <div style="text-align:center;padding:16px 0 8px;">
+    <!-- 导出报告 - 大按钮 -->
+    <button onclick="exportReport()" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;max-width:360px;padding:14px 24px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 3px 12px rgba(27,107,138,0.3);transition:all 0.2s;margin-bottom:14px;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(27,107,138,0.35)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 3px 12px rgba(27,107,138,0.3)'">📄 导出报告</button>
+    <!-- 数据导出/导入 - 小按钮 -->
     <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
-      <button onclick="exportReport()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border:1px solid var(--accent);border-radius:6px;background:#fff;color:var(--accent);font-size:13px;cursor:pointer;font-family:inherit;transition:all 0.2s;font-weight:500;" onmouseover="this.style.background='var(--accent)';this.style.color='#fff'" onmouseout="this.style.background='#fff';this.style.color='var(--accent)'">📄 导出报告</button>
-      <button onclick="exportDataJSON()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border:1px solid var(--card-border);border-radius:6px;background:#fff;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--card-border)';this.style.color='var(--text-secondary)'">📤 导出数据（备份用）</button>
-      <button onclick="document.getElementById('importFileInput').click()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border:1px solid var(--card-border);border-radius:6px;background:#fff;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--card-border)';this.style.color='var(--text-secondary)'">📥 导入数据</button>
+      <button onclick="verifyDev(exportDataJSON)" style="display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border:1px solid var(--card-border);border-radius:6px;background:#fff;color:var(--text-muted);font-size:12px;cursor:pointer;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--card-border)';this.style.color='var(--text-muted)'">📤 导出数据（备份用）</button>
+      <button onclick="verifyDev(function(){document.getElementById('importFileInput').click()})" style="display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border:1px solid var(--card-border);border-radius:6px;background:#fff;color:var(--text-muted);font-size:12px;cursor:pointer;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--card-border)';this.style.color='var(--text-muted)'">📥 导入数据</button>
       <input type="file" id="importFileInput" accept=".json" style="display:none;" onchange="importDataJSON(this)">
     </div>
-    <div id="importMsg" style="font-size:11px;color:var(--text-muted);margin-top:6px;display:none;"></div>
+    <div id="importMsg" style="font-size:11px;color:var(--text-muted);margin-top:8px;display:none;"></div>
   </div>
 
 </div>
@@ -2320,6 +2322,16 @@ function exportReport() {
   showImportMsg('报告已导出，用浏览器打开即可查看打印', 'success');
 }
 
+// ============================================================
+const DEV_PASSWORD = 'cwytzglb20240304';
+function verifyDev(callback) {
+  const pw = prompt('请输入开发者密码：');
+  if (pw === DEV_PASSWORD) {
+    callback();
+  } else if (pw !== null) {
+    showImportMsg('密码错误，仅开发者可用此功能', 'error');
+  }
+}
 // ============================================================
 function showImportMsg(msg, type) {
   const el = document.getElementById('importMsg');
