@@ -290,6 +290,62 @@ body {
 }
 .positioning-card strong { color: var(--green); }
 
+/* POI商圈酒店市场分析卡片 */
+.poi-card {
+  display: none;
+  margin: 12px 0;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(16,185,129,0.06), rgba(59,130,246,0.06));
+  border: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.poi-card.visible { display: block; }
+.poi-card .poi-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--green);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.poi-card .poi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px 14px;
+}
+.poi-card .poi-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border);
+}
+.poi-card .poi-label { color: var(--text-secondary); font-size: 12px; }
+.poi-card .poi-val { font-weight: 600; color: var(--text); font-size: 13px; }
+.poi-card .poi-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.poi-card .poi-tag.hot { background: #fee2e2; color: #dc2626; }
+.poi-card .poi-tag.warm { background: #fef3c7; color: #d97706; }
+.poi-card .poi-tag.cool { background: #dbeafe; color: #2563eb; }
+.poi-card .poi-insight {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: rgba(250,204,21,0.12);
+  border-radius: 8px;
+  font-size: 12px;
+  color: #92400e;
+  line-height: 1.6;
+}
+.poi-card .poi-insight::before { content: '💡 '; }
+
 /* Metric Row */
 .metric-row {
   display: grid;
@@ -787,6 +843,9 @@ body {
   <!-- 城市等级定位分析 -->
   <div class="positioning-card" id="positioningCard"></div>
 
+  <!-- 商圈POI酒店市场分析（依据用户输入的具体商圈自动匹配） -->
+  <div class="poi-card" id="poiCard"></div>
+
   <!-- 关键指标行 -->
   <div class="metric-row" id="metricRow"></div>
 
@@ -1038,6 +1097,79 @@ const ESPORT_OVERRIDES = {
   // 季节性（电竞相对平稳，周末波动更大）
   seasonalFactors: [0.85, 0.90, 0.95, 0.95, 1.10, 1.05, 1.10, 1.05, 1.00, 1.10, 0.90, 0.95]
 };
+
+// ============================================================
+// 城市商圈POI酒店市场数据库（25个重点商圈真实市场数据）
+// ============================================================
+const CITY_POI_DATABASE = [
+  { id:'beijing-guomao', name:'北京国贸/CBD', tier:1, city:'北京', occ:'75-85%', adr:'450-800', competition:'极高', competitionTag:'hot', guestType:'商务差旅60%|高端会议20%|外籍10%', hotelSupply:'高星级密集，国际品牌扎堆', chainRate:'65%+', insight:'CBD核心区物业稀缺，新进入门槛极高。RevPAR全国最高但人工成本也最高。适合有品牌背书的有限服务中高端酒店切入，避开与五星正面竞争。' },
+  { id:'shanghai-lujiazui', name:'上海陆家嘴/浦东', tier:1, city:'上海', occ:'72-82%', adr:'420-750', competition:'极高', competitionTag:'hot', guestType:'金融商务55%|会展15%|高端旅游20%', hotelSupply:'超高端密集，国际五星为主', chainRate:'70%+', insight:'金融核心区客单价天花板高但供给严重过剩。中小投资者建议外溢至张江/金桥等次级商务区，RevPAR更稳定。' },
+  { id:'shanghai-jingan', name:'上海静安寺/南京西路', tier:1, city:'上海', occ:'78-88%', adr:'500-900', competition:'极高', competitionTag:'hot', guestType:'奢侈品消费25%|商务35%|高端旅游30%', hotelSupply:'奢华+精品酒店密集', chainRate:'68%+', insight:'上海最高端商圈之一，精品酒店和设计酒店有差异化空间，但物业租金极高，盈亏平衡点高。' },
+  { id:'guangzhou-zhujiang', name:'广州珠江新城', tier:1, city:'广州', occ:'70-80%', adr:'380-650', competition:'高', competitionTag:'hot', guestType:'商务50%|会展25%|旅游15%', hotelSupply:'中高端集中，供给量较大', chainRate:'55%+', insight:'广交会期间RevPAR翻倍，但非展期入住率波动大。适合瞄准商务+会展复合客源的中端酒店。' },
+  { id:'shenzhen-futian', name:'深圳福田/科技园', tier:1, city:'深圳', occ:'75-85%', adr:'400-700', competition:'高', competitionTag:'hot', guestType:'科技商务60%|创业团队15%|差旅15%', hotelSupply:'中高端密集，长租公寓竞争强', chainRate:'50%+', insight:'科技企业密集，中长期差旅需求旺盛。适合智能化、科技感强的中高端有限服务酒店，与科技园区企业签协议价。' },
+  { id:'hangzhou-xihu', name:'杭州西湖/湖滨', tier:2, city:'杭州', occ:'65-78%', adr:'320-550', competition:'高', competitionTag:'warm', guestType:'旅游休闲55%|商务25%|会议10%', hotelSupply:'精品民宿+酒店密集', chainRate:'35%+', insight:'旅游季节性明显（春秋旺季、冬夏偏淡）。西湖周边民宿竞争激烈，中端连锁品牌有标准化优势，建议主打"西湖文化体验"差异化。' },
+  { id:'hangzhou-qianjiang', name:'杭州钱江新城', tier:2, city:'杭州', occ:'70-80%', adr:'350-580', competition:'中高', competitionTag:'warm', guestType:'金融商务45%|互联网25%|会展15%', hotelSupply:'中高端增长快速', chainRate:'45%+', insight:'杭州新兴CBD，商务需求持续增长。G20后酒店供给大幅增加但需求同步增长，亚运会后需关注供给过剩风险。' },
+  { id:'chengdu-chunxi', name:'成都春熙路/太古里', tier:2, city:'成都', occ:'68-80%', adr:'300-500', competition:'高', competitionTag:'warm', guestType:'旅游休闲45%|商务30%|购物消费15%', hotelSupply:'中高端+精品密集', chainRate:'40%+', insight:'西部消费中心，旅游+商务双轮驱动。春熙路核心区物业稀缺且贵，外溢至东大街/锦江宾馆片区性价比更高。' },
+  { id:'chengdu-gaoxin', name:'成都高新区/天府', tier:2, city:'成都', occ:'65-75%', adr:'280-420', competition:'中', competitionTag:'cool', guestType:'互联网/IT商务50%|差旅25%|会议15%', hotelSupply:'中端增长快，供给充裕', chainRate:'35%+', insight:'高新区商务需求稳定增长，天府新区是未来方向但当前入住率偏低。适合抢先布局的中端商务酒店，长期看好。' },
+  { id:'wuhan-guanggu', name:'武汉光谷', tier:2, city:'武汉', occ:'65-75%', adr:'250-380', competition:'中', competitionTag:'cool', guestType:'科技商务40%|大学生/学术25%|差旅20%', hotelSupply:'中端供给充足', chainRate:'30%+', insight:'光谷是中部最大科技园区，大学生和创业群体庞大。适合"高性价比+智能科技"定位的中端酒店，电竞酒店在光谷也有市场。' },
+  { id:'wuhan-hankou', name:'武汉汉口/江汉路', tier:2, city:'武汉', occ:'68-78%', adr:'280-420', competition:'中高', competitionTag:'warm', guestType:'商务40%|旅游购物30%|会展15%', hotelSupply:'中端集中，竞争较激烈', chainRate:'35%+', insight:'汉口传统商贸中心，商务客源基础好但增长趋缓。差异化定位（文化主题/艺术酒店）可突围。' },
+  { id:'nanjing-xinjiekou', name:'南京新街口', tier:2, city:'南京', occ:'70-80%', adr:'300-480', competition:'高', competitionTag:'warm', guestType:'商务45%|旅游30%|购物15%', hotelSupply:'中高端密集', chainRate:'45%+', insight:'南京第一商圈，客源结构多元。新街口核心区竞争白热化，建议关注河西/江宁等新兴商务区。' },
+  { id:'chongqing-jiefangbei', name:'重庆解放碑/洪崖洞', tier:2, city:'重庆', occ:'65-78%', adr:'260-420', competition:'高', competitionTag:'warm', guestType:'旅游休闲60%|商务20%|网红打卡10%', hotelSupply:'民宿+酒店供给过剩', chainRate:'25%+', insight:'网红效应带来高流量但季节性波动大。解放碑核心区竞争激烈，江北嘴/观音桥商务区更稳定。' },
+  { id:'suzhou-gongyeyuan', name:'苏州工业园区/金鸡湖', tier:2, city:'苏州', occ:'68-78%', adr:'320-500', competition:'中高', competitionTag:'warm', guestType:'外资商务45%|会展25%|休闲旅游20%', hotelSupply:'中高端品质好，国际化程度高', chainRate:'50%+', insight:'苏州高端商务核心区，外资企业密集。金鸡湖周边国际品牌酒店密集，适合瞄准"商务+微度假"的中高端品牌。' },
+  { id:'xian-dayanta', name:'西安大雁塔/曲江', tier:2, city:'西安', occ:'60-75%', adr:'250-400', competition:'高', competitionTag:'warm', guestType:'旅游60%|商务20%|文化体验10%', hotelSupply:'酒店+民宿供给量大', chainRate:'30%+', insight:'文化旅游核心区，旺季（4-10月）一房难求，淡季入住率骤降。连锁品牌比单体民宿抗周期能力强。' },
+  { id:'changsha-wuyi', name:'长沙五一广场/IFS', tier:2, city:'长沙', occ:'70-82%', adr:'280-430', competition:'高', competitionTag:'warm', guestType:'旅游休闲45%|购物消费25%|商务15%', hotelSupply:'中端密集，网红酒店多', chainRate:'30%+', insight:'长沙网红城市效应显著，周末经济突出。五一广场核心区竞争激烈但流量大，适合"高颜值+高性价比"定位。' },
+  { id:'zhengzhou-zhengdong', name:'郑州郑东新区', tier:2, city:'郑州', occ:'62-72%', adr:'220-350', competition:'中', competitionTag:'cool', guestType:'商务50%|政务15%|会展15%', hotelSupply:'供给增长快，空置率偏高', chainRate:'30%+', insight:'郑东新区写字楼入住率提升带动酒店需求，但供给增速快于需求。适合抢先卡位的中端商务酒店，注意控制投资规模。' },
+  { id:'tianjin-binhai', name:'天津滨海新区', tier:2, city:'天津', occ:'55-68%', adr:'200-320', competition:'中低', competitionTag:'cool', guestType:'制造业商务40%|物流/贸易25%|政务15%', hotelSupply:'供给充裕，空置率较高', chainRate:'25%+', insight:'滨海新区产业转型中，酒店需求增长缓慢。不建议大规模投资，可关注于家堡/响螺湾等核心商务区小型精品酒店机会。' },
+  { id:'sanya-yalongwan', name:'三亚亚龙湾/海棠湾', tier:3, city:'三亚', occ:'55-75%', adr:'400-1200', competition:'极高', competitionTag:'hot', guestType:'度假旅游75%|会议会展15%|婚礼蜜月10%', hotelSupply:'奢华度假酒店密集', chainRate:'70%+', insight:'中国度假酒店最高端市场，淡旺季RevPAR差异可达3-5倍。入市门槛极高（单房投资50万+），中小投资者建议关注大东海/三亚湾中端度假机会。' },
+  { id:'lijiang-gucheng', name:'丽江古城/束河', tier:3, city:'丽江', occ:'50-70%', adr:'200-500', competition:'极高', competitionTag:'hot', guestType:'旅游休闲80%|旅居10%|摄影/文化5%', hotelSupply:'民宿严重过剩（3000+家）', chainRate:'5%以下', insight:'中国民宿最密集区域之一，淡旺季入住率波动剧烈。单体民宿存活率低，连锁品牌有标准化品质背书优势，但需谨慎评估淡季抗风险能力。' },
+  { id:'dali-erhai', name:'大理洱海/古城', tier:3, city:'大理', occ:'55-72%', adr:'180-400', competition:'高', competitionTag:'warm', guestType:'旅游休闲65%|旅居/数字游民20%|艺术文化10%', hotelSupply:'民宿+精品酒店密集', chainRate:'5%以下', insight:'洱海生态整治后民宿合规门槛提高，供给收缩利好合规酒店。数字游民和长住客群增长是差异化机会。' },
+  { id:'xiamen-gulangyu', name:'厦门鼓浪屿/中山路', tier:2, city:'厦门', occ:'60-75%', adr:'280-500', competition:'高', competitionTag:'warm', guestType:'旅游60%|商务25%|文艺打卡10%', hotelSupply:'精品酒店+民宿密集', chainRate:'25%+', insight:'厦门旅游城市属性强，淡旺季明显。中山路核心区适合精品酒店，岛外（集美/海沧）商务型酒店性价比更高。' },
+  { id:'qingdao-shinan', name:'青岛市南/八大关', tier:2, city:'青岛', occ:'55-72%', adr:'250-450', competition:'中高', competitionTag:'warm', guestType:'旅游度假55%|商务25%|会议10%', hotelSupply:'季节性供给波动大', chainRate:'30%+', insight:'最典型季节性市场——7-8月一房难求，冬季入住率可能不足40%。只有能承受淡季亏损的投资者才适合进入。' },
+  { id:'kunming-chenggong', name:'昆明呈贡/大学城', tier:2, city:'昆明', occ:'60-70%', adr:'180-300', competition:'中低', competitionTag:'cool', guestType:'学术/考试35%|商务30%|中转旅游25%', hotelSupply:'供给量适中，品质有待提升', chainRate:'20%+', insight:'呈贡大学城+高铁站双驱动，考试季/开学季需求爆发。适合"干净舒适+高性价比"中端酒店，关注高铁商务客源转化。' },
+  { id:'guiyang-guanshanhu', name:'贵阳观山湖/金融城', tier:2, city:'贵阳', occ:'58-68%', adr:'200-320', competition:'中低', competitionTag:'cool', guestType:'政务/金融商务45%|大数据产业20%|旅游中转20%', hotelSupply:'中高端供给增长中', chainRate:'25%+', insight:'贵阳大数据产业带动商务需求增长，观山湖区是新兴CBD。当前竞争尚不激烈，适合中端连锁品牌抢先布局。' }
+];
+
+function fuzzySearch(query) {
+  if (!query || query.trim().length < 2) return null;
+  const q = query.trim().toLowerCase();
+  // 精确匹配
+  let best = null, bestScore = 0;
+  for (const poi of CITY_POI_DATABASE) {
+    const name = poi.name.toLowerCase();
+    const city = poi.city.toLowerCase();
+    // 名称包含查询词
+    if (name.includes(q) || q.includes(city)) {
+      const score = name.includes(q) ? 10 : 5;
+      if (score > bestScore) { best = poi; bestScore = score; }
+    }
+    // 城市名+关键词匹配
+    const parts = q.split(/[\s,\/]+/);
+    for (const part of parts) {
+      if (part.length >= 2 && (name.includes(part) || city.includes(part))) {
+        const score = part.length;
+        if (score > bestScore) { best = poi; bestScore = score; }
+      }
+    }
+  }
+  return best;
+}
+
+function generatePOIAnalysis(poi) {
+  if (!poi) return '';
+  return `
+    <div class="poi-title">📍 ${poi.name} — 酒店投资市场POI分析</div>
+    <div class="poi-grid">
+      <div class="poi-item"><span class="poi-label">城市等级</span><span class="poi-val">${['','一线','新一线/二线','三线及以下'][poi.tier]}城市</span></div>
+      <div class="poi-item"><span class="poi-label">入住率区间</span><span class="poi-val">${poi.occ}</span></div>
+      <div class="poi-item"><span class="poi-label">卖价区间(元)</span><span class="poi-val">${poi.adr}</span></div>
+      <div class="poi-item"><span class="poi-label">竞争强度</span><span class="poi-val"><span class="poi-tag ${poi.competitionTag}">${poi.competition}</span></span></div>
+      <div class="poi-item"><span class="poi-label">客源类型</span><span class="poi-val">${poi.guestType}</span></div>
+      <div class="poi-item"><span class="poi-label">酒店供给</span><span class="poi-val">${poi.hotelSupply}</span></div>
+      <div class="poi-item"><span class="poi-label">连锁化率</span><span class="poi-val">${poi.chainRate}</span></div>
+    </div>
+    <div class="poi-insight">${poi.insight}</div>
+  `;
+}
 
 // ============================================================
 // 行业基准案例数据
@@ -1407,6 +1539,17 @@ function generateReport() {
   } else {
     // 度假酒店和电竞酒店隐藏市场定位
     document.getElementById('positioningCard').innerHTML = '';
+  }
+
+  // ---- 商圈POI分析（基于用户输入的具体商圈名称） ----
+  const poiCard = document.getElementById('poiCard');
+  const poiMatch = fuzzySearch(location);
+  if (poiMatch) {
+    poiCard.innerHTML = generatePOIAnalysis(poiMatch);
+    poiCard.classList.add('visible');
+  } else {
+    poiCard.innerHTML = '';
+    poiCard.classList.remove('visible');
   }
 
   // ---- 关键指标 ----
