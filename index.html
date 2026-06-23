@@ -351,6 +351,47 @@ body {
   .poi-card .poi-grid { grid-template-columns: 1fr 1fr; }
 }
 
+/* 城市自动补全下拉 */
+.autocomplete-wrapper { position: relative; }
+.autocomplete-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 210px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+  z-index: 100;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.autocomplete-dropdown.show { display: block; }
+.autocomplete-item {
+  padding: 9px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  border-bottom: 1px solid #f2f2f2;
+  transition: background 0.15s;
+}
+.autocomplete-item:hover, .autocomplete-item.selected {
+  background: #e8f2f6;
+  color: var(--blue);
+  font-weight: 600;
+}
+.autocomplete-item:last-child { border-bottom: none; }
+.autocomplete-empty {
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 /* Metric Row */
 .metric-row {
   display: grid;
@@ -734,8 +775,15 @@ body {
       <div class="unit" id="cityTierHint">选择后自动匹配成本结构参考值</div>
     </div>
     <div class="form-item">
-      <label>具体城市 / 商圈</label>
-      <input type="text" id="location" placeholder="例如：成都市锦江区春熙路商圈" value="成都市锦江区春熙路商圈">
+      <label>城市</label>
+      <div class="autocomplete-wrapper">
+        <input type="text" id="location" placeholder="输入城市名（如：成都）" value="成都" autocomplete="off" oninput="onCityInput()" onfocus="onCityInput()" onblur="setTimeout(() => document.getElementById('cityDropdown').classList.remove('show'), 200)">
+        <div class="autocomplete-dropdown" id="cityDropdown"></div>
+      </div>
+    </div>
+    <div class="form-item">
+      <label>商圈 / 区域</label>
+      <input type="text" id="districtInput" placeholder="输入商圈名（如：春熙路），留空则自动匹配首个商圈" autocomplete="off" onchange="generateReport()">
     </div>
 
     <!-- 酒店类型模式切换 -->
@@ -1672,29 +1720,64 @@ const CITY_POI_DATABASE = [
   { id:'莎车-全市', name:'莎车', tier:4, city:'莎车', occ:'39-56%', adr:'200-305', competition:'中低', competitionTag:'cool', guestType:'工业40% | 商务30% | 中转20% | 其他10%', hotelSupply:'中低端酒店为主，连锁化率低，单体酒店为主导', chainRate:'28%', insight:'喀什辖县级市。十二木卡姆故乡+农业，南疆大县。连锁化率低，品牌下沉空间大，但单城规模有限需精算' }
 ];
 
-function fuzzySearch(query) {
-  if (!query || query.trim().length < 2) return null;
-  const q = query.trim().toLowerCase();
-  // 精确匹配
-  let best = null, bestScore = 0;
-  for (const poi of CITY_POI_DATABASE) {
-    const name = poi.name.toLowerCase();
-    const city = poi.city.toLowerCase();
-    // 名称包含查询词
-    if (name.includes(q) || q.includes(city)) {
-      const score = name.includes(q) ? 10 : 5;
-      if (score > bestScore) { best = poi; bestScore = score; }
-    }
-    // 城市名+关键词匹配
-    const parts = q.split(/[\s,\/]+/);
-    for (const part of parts) {
-      if (part.length >= 2 && (name.includes(part) || city.includes(part))) {
-        const score = part.length;
-        if (score > bestScore) { best = poi; bestScore = score; }
-      }
-    }
+// ---- 城市列表（从商圈数据库中提取去重） ----
+const CITY_LIST = [...new Set(CITY_POI_DATABASE.map(p => p.city))].sort();
+
+// ---- 城市自动补全 ----
+function onCityInput() {
+  const input = document.getElementById('location');
+  const dropdown = document.getElementById('cityDropdown');
+  const val = (input.value || '').trim().toLowerCase();
+  if (val.length === 0) { dropdown.classList.remove('show'); return; }
+  const matches = CITY_LIST.filter(c => c.toLowerCase().includes(val));
+  if (matches.length === 0) {
+    dropdown.innerHTML = '<div class="autocomplete-empty">未找到匹配的城市</div>';
+    dropdown.classList.add('show');
+    return;
   }
-  return best;
+  const highlight = matches[0].toLowerCase() === val ? matches[0] : '';
+  dropdown.innerHTML = matches.map(c =>
+    `<div class="autocomplete-item${c === highlight ? ' selected' : ''}" onmousedown="selectCity('${c.replace(/'/g, "\\'")}')">${c}</div>`
+  ).join('');
+  dropdown.classList.add('show');
+}
+function selectCity(city) {
+  document.getElementById('location').value = city;
+  document.getElementById('cityDropdown').classList.remove('show');
+  generateReport();
+}
+// 点击页面其他地方关闭下拉
+document.addEventListener('click', function(e) {
+  const wrap = document.querySelector('.autocomplete-wrapper');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('cityDropdown').classList.remove('show');
+  }
+});
+
+// ---- 商圈模糊搜索（城市+商圈分离） ----
+function fuzzySearch(city, district) {
+  if (!city || city.trim().length < 2) return null;
+  const c = city.trim().toLowerCase();
+  const d = (district || '').trim().toLowerCase();
+
+  // 1. 城市精准匹配 + 商圈名模糊匹配
+  if (d.length >= 1) {
+    for (const poi of CITY_POI_DATABASE) {
+      if (poi.city.toLowerCase() !== c) continue;
+      const nm = poi.name.toLowerCase();
+      const did = poi.id.toLowerCase();
+      // 商圈名包含在名称中，或商圈名包含在ID中
+      if (nm.includes(d) || did.includes(d) || d.includes(nm)) return poi;
+    }
+    // 2. 城市精准匹配，但商圈未命中 → 返回 null（触发降级）
+    return null;
+  }
+
+  // 3. 仅有城市名，无商圈 → 返回该城市下第一个（最优）商圈
+  for (const poi of CITY_POI_DATABASE) {
+    if (poi.city.toLowerCase() === c) return poi;
+  }
+  return null;
 }
 
 function generatePOIAnalysis(poi) {
@@ -1711,6 +1794,37 @@ function generatePOIAnalysis(poi) {
       <div class="poi-cell"><span class="poi-label">连锁化率</span><span class="poi-val">${poi.chainRate}</span></div>
     </div>
     <div class="poi-insight">${poi.insight}</div>
+  `;
+}
+
+// POI分析降级版：商圈不在知识库内，展示该城市2个优质商圈供参考
+function generatePOIFallback(city, district) {
+  const c = (city || '').trim().toLowerCase();
+  if (!c) return '';
+  // 获取该城市所有商圈，按 tier 排序（低=高等级）
+  const cityPOIs = CITY_POI_DATABASE
+    .filter(p => p.city.toLowerCase() === c)
+    .sort((a, b) => a.tier - b.tier);
+  if (cityPOIs.length === 0) return '';
+  const top = cityPOIs.slice(0, 2);
+  const distLabel = district ? `「${district}」` : '该';
+  return `
+    <div class="poi-title">📍 ${city}${district ? district : ''} — 酒店投资市场POI分析</div>
+    <div class="poi-insight" style="margin-bottom:16px;color:var(--text-muted);">⚠️ 暂没有 ${distLabel} 商圈的详细分析数据，以下为 ${city} 优质商圈供参考：</div>
+    ${top.map((p, i) => `
+      <div style="${i > 0 ? 'margin-top:16px;padding-top:14px;border-top:1px dashed var(--card-border);' : ''}">
+        <div class="poi-title" style="font-size:13px;margin-bottom:8px;">📊 替代参考${i+1}：${p.name}</div>
+        <div class="poi-grid">
+          <div class="poi-cell"><span class="poi-label">入住率区间</span><span class="poi-val">${p.occ}</span></div>
+          <div class="poi-cell"><span class="poi-label">卖价区间 (元)</span><span class="poi-val">${p.adr}</span></div>
+          <div class="poi-cell"><span class="poi-label">竞争强度</span><span class="poi-val"><span class="poi-tag ${p.competitionTag}">${p.competition}</span></span></div>
+          <div class="poi-cell"><span class="poi-label">客源类型</span><span class="poi-val">${p.guestType}</span></div>
+          <div class="poi-cell"><span class="poi-label">酒店供给</span><span class="poi-val">${p.hotelSupply}</span></div>
+          <div class="poi-cell"><span class="poi-label">连锁化率</span><span class="poi-val">${p.chainRate}</span></div>
+        </div>
+        <div class="poi-insight">${p.insight}</div>
+      </div>
+    `).join('')}
   `;
 }
 
@@ -1861,6 +1975,8 @@ function generateReport() {
 
   const tier = parseInt(document.getElementById('cityTier').value);
   const location = document.getElementById('location').value.trim();
+  const district = document.getElementById('districtInput').value.trim();
+  const locFull = district ? `${location}${district}` : location;
   const investment = parseFloat(document.getElementById('totalInvestment').value);
   const rooms = parseInt(document.getElementById('roomCount').value);
   const rent = parseFloat(document.getElementById('annualRent').value);
@@ -1902,7 +2018,7 @@ function generateReport() {
 
   // ---- 冰雪度假城市季节性调整 ----
   // 如果地点包含冰雪度假城市名称，调整季节性因子（12-2月旺季，7-8月平季）
-  if (location && SNOW_RESORT_CITIES.some(city => location.includes(city))) {
+  if (locFull && SNOW_RESORT_CITIES.some(city => locFull.includes(city))) {
     effectiveSeasonalFactors = effectiveSeasonalFactors.map((f, i) => {
       // 12月(index 11)、1月(index 0)、2月(index 1) 提升20-30%
       if (i === 11 || i === 0 || i === 1) return f * 1.25;
@@ -2064,7 +2180,7 @@ function generateReport() {
     `<span>🛏️ <b>${rooms}</b> 间客房</span>`,
     `<span>🏠 年租金 <b>${rent.toLocaleString()}</b> 万元</span>`,
     `<span>👨‍💼 ${staffCount} 人团队</span>`,
-    location ? `<span>📍 ${location}</span>` : `<span>📍 ${tp.label}酒店</span>`
+    locFull ? `<span>📍 ${locFull}</span>` : `<span>📍 ${tp.label}酒店</span>`
   ].join('');
 
   // ---- 城市定位分析（仅标准商务酒店显示）----
@@ -2084,15 +2200,21 @@ function generateReport() {
     document.getElementById('positioningCard').innerHTML = '';
   }
 
-  // ---- 商圈POI分析（基于用户输入的具体商圈名称） ----
+  // ---- 商圈POI分析（城市 + 商圈分离；未命中则展示城市优质商圈代替） ----
   const poiCard = document.getElementById('poiCard');
-  const poiMatch = fuzzySearch(location);
+  const poiMatch = fuzzySearch(location, district);
   if (poiMatch) {
     poiCard.innerHTML = generatePOIAnalysis(poiMatch);
     poiCard.classList.add('visible');
   } else {
-    poiCard.innerHTML = '';
-    poiCard.classList.remove('visible');
+    const fallback = generatePOIFallback(location, district);
+    if (fallback) {
+      poiCard.innerHTML = fallback;
+      poiCard.classList.add('visible');
+    } else {
+      poiCard.innerHTML = '';
+      poiCard.classList.remove('visible');
+    }
   }
 
   // ---- 关键指标 ----
@@ -2701,7 +2823,7 @@ function bumpUsage() {
 const SAVE_KEY = 'hotelCalcSavedState';
 // 所有需要保存/恢复的输入控件
 const TRACKED_INPUT_IDS = [
-  'cityTier', 'location', 'roomCount',
+  'cityTier', 'location', 'districtInput', 'roomCount',
   'perRoomInvest', 'publicRenovation', 'designFee', 'franchiseFee', 'otherFees',
   'directInvestment', 'annualRent', 'referencePrice', 'referenceOccupancy',
   'nonRoomRevenuePct', 'adminFeeRate'
