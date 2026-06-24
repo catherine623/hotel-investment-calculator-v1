@@ -2863,6 +2863,22 @@ function generateReport() {
   document.getElementById('heroCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
   bumpUsage();
   autoSave(); // 生成报告后自动保存输入参数
+  collectToDashboard({
+    city_tier: tier, city: location, district: district || '',
+    investment: investment, rooms: rooms, annual_rent: rent,
+    adr: adr, occupancy: refOcc, non_room_pct: nonRoomPct,
+    hotel_mode: currentHotelMode, invest_mode: currentInvestMode,
+    admin_fee_rate: customAdminFeeRate,
+    annual_revenue: parseFloat(annualRev.toFixed(2)),
+    annual_cost: parseFloat(annualCost.toFixed(2)),
+    gop: parseFloat(annualGop.toFixed(2)),
+    gop_ratio: parseFloat((effectiveGopRatio * 100).toFixed(1)),
+    cash_flow: parseFloat(actualCashFlow.toFixed(2)),
+    payback_years: actualPayback === Infinity ? 999 : parseFloat(actualPayback.toFixed(1)),
+    staff_count: staffCount,
+    cost_ratio: parseFloat((totalCostRatio * 100).toFixed(1)),
+    poi_matched: !!poiMatch ? 1 : 0
+  });
 }
 
 // ============================================================
@@ -3282,6 +3298,29 @@ function showImportMsg(msg, type) {
     recalcDirectInvestment();
   }
 })();
+
+// ============================================================
+// 看板数据收集 - 发送至后台 API
+// ============================================================
+const DASHBOARD_API = 'https://your-dashboard-server.com/api/collect'; // TODO: 替换为实际部署地址
+
+function collectToDashboard(payload) {
+  if (!DASHBOARD_API || DASHBOARD_API.includes('your-dashboard-server')) {
+    // 未配置后端地址，跳过
+    return;
+  }
+  try {
+    fetch(DASHBOARD_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      // 不阻塞页面，静默发送
+      signal: AbortSignal.timeout(5000)
+    }).then(r => r.json())
+      .then(d => { if (d.status === 'ok') console.debug('[Dashboard] 数据已收集:', d.id); })
+      .catch(() => {}); // 静默失败，不影响用户体验
+  } catch (e) {}
+}
 </script>
 </body>
 </html>
