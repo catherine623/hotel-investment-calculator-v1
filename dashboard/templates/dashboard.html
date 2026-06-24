@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>酒店投资计算器 · 后台数据看板</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #06060f;
+  --card: #0d0d24;
+  --border: #1a1a3e;
+  --text: #c8c8e0;
+  --muted: #6b6b8a;
+  --accent: #8b5cf6;
+  --green: #22c55e;
+  --orange: #f59e0b;
+  --red: #ef4444;
+  --blue: #3b82f6;
+  --cyan: #06b6d4;
+  --pink: #ec4899;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); min-height:100vh; }
+body.loading { cursor:wait; }
+
+/* 顶栏 */
+header {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky; top:0; z-index:100;
+}
+header h1 { font-size: 20px; font-weight: 600; }
+header h1 span { color: var(--accent); }
+.header-right { display: flex; gap: 12px; align-items: center; }
+.header-right select, .header-right button {
+  padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--bg); color: var(--text); font-size: 13px; cursor: pointer;
+}
+.header-right button.refresh { background: var(--accent); border-color: var(--accent); color: white; }
+.header-right button:hover { opacity: 0.85; }
+.last-update { font-size: 11px; color: var(--muted); }
+
+/* 概览卡片 */
+.overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  padding: 24px 32px;
+}
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+.stat-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.stat-card .value { font-size: 32px; font-weight: 700; line-height: 1.1; }
+.stat-card .sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.stat-card.accent .value { color: var(--accent); }
+.stat-card.green .value { color: var(--green); }
+.stat-card.orange .value { color: var(--orange); }
+
+/* 图表区 */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: 16px;
+  padding: 0 32px 24px;
+}
+.grid.full { grid-template-columns: 1fr; }
+.grid.col3 { grid-template-columns: repeat(3, 1fr); }
+.chart-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  position: relative;
+}
+.chart-box h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.chart-box h3 .badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--accent); color: white; }
+.chart-box canvas { max-height: 300px; }
+
+/* 判词分布 */
+.verdict-bars { display: flex; gap: 12px; margin-top: 8px; }
+.verdict-bar { flex:1; text-align:center; }
+.verdict-bar .bar { height: 8px; border-radius: 4px; margin-bottom: 6px; }
+.verdict-bar .label { font-size: 12px; color: var(--muted); }
+.verdict-bar .count { font-size: 20px; font-weight: 700; }
+
+/* 最近提交表格 */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; white-space: nowrap; position: sticky; top: 0; background: var(--card); }
+td { white-space: nowrap; }
+.tag { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+.tag-feasible { background: #064e18; color: #22c55e; }
+.tag-challenging { background: #4a3000; color: #f59e0b; }
+.tag-difficult { background: #4a1010; color: #ef4444; }
+.tag-impossible { background: #3a0a3a; color: #ec4899; }
+
+/* 加载/空状态 */
+.loading-overlay {
+  display: none;
+  position: absolute; inset:0;
+  background: rgba(6,6,15,0.7); border-radius:12px;
+  justify-content:center; align-items:center; flex-direction:column; gap:12px;
+}
+.loading-overlay.show { display:flex; }
+.spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 768px) {
+  .overview { padding: 16px; }
+  .grid { padding: 0 16px 16px; }
+  .grid.col3 { grid-template-columns: 1fr; }
+  .chart-box { overflow: hidden; }
+}
+</style>
+</head>
+<body class="loading">
+
+<header>
+  <h1>📊 酒店投资计算器 <span>数据看板</span></h1>
+  <div class="header-right">
+    <select id="modeFilter" onchange="refreshDashboard()">
+      <option value="all">全部模式</option>
+      <option value="standard">标准商务</option>
+      <option value="resort">景区度假</option>
+      <option value="esports">电竞酒店</option>
+    </select>
+    <select id="dayFilter" onchange="refreshDashboard()">
+      <option value="7">最近 7 天</option>
+      <option value="30" selected>最近 30 天</option>
+      <option value="90">最近 90 天</option>
+      <option value="365">全部时间</option>
+    </select>
+    <button class="refresh" onclick="refreshDashboard()">🔄 刷新</button>
+    <span class="last-update" id="lastUpdate">—</span>
+  </div>
+</header>
+
+<!-- 概览卡片 -->
+<div class="overview" id="overview"></div>
+
+<!-- 图表区 -->
+<div class="grid col3">
+  <div class="chart-box">
+    <h3>📈 时间趋势</h3>
+    <canvas id="chartTrend"></canvas>
+  </div>
+  <div class="chart-box">
+    <h3>🎯 投资判词分布</h3>
+    <div id="verdictChart"></div>
+  </div>
+  <div class="chart-box">
+    <h3>🏨 酒店模式分布</h3>
+    <canvas id="chartModes"></canvas>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="chart-box">
+    <h3>🏙️ 热门城市 Top 15</h3>
+    <canvas id="chartCities"></canvas>
+  </div>
+  <div class="chart-box">
+    <h3>📊 城市等级分析</h3>
+    <canvas id="chartTiers"></canvas>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="chart-box">
+    <h3>💰 ADR 房价区间 × GOP率</h3>
+    <canvas id="chartADR"></canvas>
+  </div>
+  <div class="chart-box">
+    <h3>⏱️ 回本年限分布</h3>
+    <canvas id="chartPayback"></canvas>
+  </div>
+</div>
+
+<!-- 散点图 -->
+<div class="grid full">
+  <div class="chart-box">
+    <h3>🔍 房间数 vs 投资额（气泡大小=回本年限，颜色=GOP率）</h3>
+    <canvas id="chartScatter" style="max-height:350px;"></canvas>
+  </div>
+</div>
+
+<!-- 最近提交 -->
+<div class="grid full">
+  <div class="chart-box">
+    <h3>📋 最近提交 <span class="badge" id="recentCount">0</span></h3>
+    <div class="table-wrap" id="recentTable" style="max-height: 400px; overflow-y: auto;"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// Dashboard Logic
+// ============================================================
+const API = window.location.origin + '/api/dashboard';
+const PASS = new URLSearchParams(window.location.search).get('auth') || '';
+
+let chartInstances = {};
+let currentData = null;
+
+function destroyCharts() {
+  Object.values(chartInstances).forEach(c => c.destroy());
+  chartInstances = {};
+}
+
+async function refreshDashboard() {
+  document.body.classList.add('loading');
+  const mode = document.getElementById('modeFilter').value;
+  const days = document.getElementById('dayFilter').value;
+  
+  try {
+    const res = await fetch(`${API}?days=${days}&mode=${mode}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    currentData = await res.json();
+    renderAll(currentData);
+    document.getElementById('lastUpdate').textContent = 
+      '更新于 ' + new Date(currentData.generated_at).toLocaleTimeString('zh-CN');
+  } catch (e) {
+    console.error('Dashboard load error:', e);
+    showError('无法加载数据，请确认后端服务正在运行');
+  }
+  document.body.classList.remove('loading');
+}
+
+function showError(msg) {
+  document.getElementById('overview').innerHTML = 
+    `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--muted)">
+       ⚠️ ${msg}<br><small>API: ${API}</small>
+     </div>`;
+}
+
+function renderAll(d) {
+  const s = d.summary, a = d.averages, v = d.verdicts;
+  
+  // ---- 概览卡片 ----
+  document.getElementById('overview').innerHTML = `
+    <div class="stat-card accent">
+      <div class="label">总提交数</div>
+      <div class="value">${s.total_submissions.toLocaleString()}</div>
+      <div class="sub">独立用户 ${s.unique_users.toLocaleString()}</div>
+    </div>
+    <div class="stat-card green">
+      <div class="label">有效数据</div>
+      <div class="value">${s.clean_submissions.toLocaleString()}</div>
+      <div class="sub">清洗率 ${s.total_submissions ? (s.clean_submissions/s.total_submissions*100).toFixed(1) : 0}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">平均 GOP率</div>
+      <div class="value">${a.gop_ratio.toFixed(1)}%</div>
+      <div class="sub">平均回本 ${a.payback_years.toFixed(1)} 年</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">平均 ADR</div>
+      <div class="value">¥${Math.round(a.adr)}</div>
+      <div class="sub">入住率 ${a.occupancy.toFixed(1)}% · ${Math.round(a.rooms)}间</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="label">平均投资额</div>
+      <div class="value">¥${Math.round(a.investment)}万</div>
+      <div class="sub">年营收 ¥${Math.round(a.revenue)}万</div>
+    </div>
+  `;
+  
+  // ---- 判词分布 ----
+  const totalV = v.feasible + v.challenging + v.difficult + v.impossible || 1;
+  document.getElementById('verdictChart').innerHTML = `
+    <div class="verdict-bars">
+      <div class="verdict-bar">
+        <div class="count" style="color:var(--green)">${v.feasible}</div>
+        <div class="bar" style="background:var(--green); width:${(v.feasible/totalV*100).toFixed(0)}%"></div>
+        <div class="label">✅ 可行</div>
+      </div>
+      <div class="verdict-bar">
+        <div class="count" style="color:var(--orange)">${v.challenging}</div>
+        <div class="bar" style="background:var(--orange); width:${(v.challenging/totalV*100).toFixed(0)}%"></div>
+        <div class="label">🔶 有挑战</div>
+      </div>
+      <div class="verdict-bar">
+        <div class="count" style="color:var(--red)">${v.difficult}</div>
+        <div class="bar" style="background:var(--red); width:${(v.difficult/totalV*100).toFixed(0)}%"></div>
+        <div class="label">🔴 压力大</div>
+      </div>
+      <div class="verdict-bar">
+        <div class="count" style="color:var(--pink)">${v.impossible}</div>
+        <div class="bar" style="background:var(--pink); width:${(v.impossible/totalV*100).toFixed(0)}%"></div>
+        <div class="label">⚠️ 不可行</div>
+      </div>
+    </div>
+  `;
+  
+  // ---- 时间趋势 ----
+  destroyCharts();
+  if (d.trend.length > 0) {
+    const ctx = document.getElementById('chartTrend').getContext('2d');
+    chartInstances.trend = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: d.trend.map(r => r.day),
+        datasets: [
+          {
+            label: '提交数', yAxisID: 'y',
+            data: d.trend.map(r => r.count),
+            borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.1)',
+            fill: true, tension: 0.3, pointRadius: 2
+          },
+          {
+            label: '平均回本(年)', yAxisID: 'y1',
+            data: d.trend.map(r => r.avg_pb),
+            borderColor: '#f59e0b', borderDash: [4,4],
+            tension: 0.3, pointRadius: 2
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        scales: {
+          y: { type:'linear', position:'left', title:{display:true,text:'提交数',color:'#6b6b8a'}, ticks:{color:'#6b6b8a'}, grid:{color:'#1a1a3e'} },
+          y1: { type:'linear',position:'right', title:{display:true,text:'年',color:'#6b6b8a'}, ticks:{color:'#6b6b8a'}, grid:{display:false} },
+          x: { ticks:{color:'#6b6b8a', maxTicksLimit:10}, grid:{color:'#1a1a3e'} }
+        },
+        plugins: { legend: { labels: { color: '#c8c8e0' } } }
+      }
+    });
+  }
+  
+  // ---- 酒店模式 ----
+  if (d.hotel_modes.length > 0) {
+    const modeLabels = { standard:'标准商务', resort:'景区度假', esports:'电竞酒店' };
+    const modeColors = { standard:'#3b82f6', resort:'#22c55e', esports:'#ec4899' };
+    chartInstances.modes = new Chart(document.getElementById('chartModes'), {
+      type: 'doughnut',
+      data: {
+        labels: d.hotel_modes.map(m => modeLabels[m.hotel_mode] || m.hotel_mode),
+        datasets: [{
+          data: d.hotel_modes.map(m => m.count),
+          backgroundColor: d.hotel_modes.map(m => modeColors[m.hotel_mode] || '#8b5cf6'),
+          borderColor: '#0d0d24', borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#c8c8e0', padding: 16 } } }
+      }
+    });
+  }
+  
+  // ---- 城市排行 ----
+  if (d.cities.length > 0) {
+    const top15 = d.cities.slice(0, 15);
+    chartInstances.cities = new Chart(document.getElementById('chartCities'), {
+      type: 'bar',
+      data: {
+        labels: top15.map(c => c.city),
+        datasets: [{
+          label: '提交数',
+          data: top15.map(c => c.count),
+          backgroundColor: top15.map((_, i) => `hsla(${260 - i*12}, 70%, 55%, 0.8)`),
+          borderRadius: 4
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          x: { ticks:{color:'#6b6b8a'}, grid:{color:'#1a1a3e'} },
+          y: { ticks:{color:'#c8c8e0', font:{size:12}} }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+  
+  // ---- 城市等级 ----
+  if (d.tiers.length > 0) {
+    const tierLabels = {1:'一线', 2:'新一线/二线', 3:'三线', 4:'四线', 5:'五线'};
+    chartInstances.tiers = new Chart(document.getElementById('chartTiers'), {
+      type: 'bar',
+      data: {
+        labels: d.tiers.map(t => tierLabels[t.city_tier] || `T${t.city_tier}`),
+        datasets: [
+          {
+            label: '提交数', yAxisID: 'y',
+            data: d.tiers.map(t => t.count),
+            backgroundColor: 'rgba(139,92,246,0.6)', borderRadius: 4
+          },
+          {
+            label: '平均GOP率(%)', yAxisID: 'y1', type:'line',
+            data: d.tiers.map(t => t.avg_gop),
+            borderColor: '#22c55e', backgroundColor: 'transparent',
+            tension: 0.3, pointRadius: 4, pointBackgroundColor: '#22c55e'
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          y: { position:'left', title:{display:true,text:'提交数',color:'#6b6b8a'}, ticks:{color:'#6b6b8a'}, grid:{color:'#1a1a3e'} },
+          y1: { position:'right', title:{display:true,text:'GOP%',color:'#6b6b8a'}, min:0, max:80, ticks:{color:'#6b6b8a'}, grid:{display:false} },
+          x: { ticks:{color:'#c8c8e0'} }
+        },
+        plugins: { legend: { labels: { color: '#c8c8e0' } } }
+      }
+    });
+  }
+  
+  // ---- ADR分布 ----
+  if (d.adr_distribution.length > 0) {
+    chartInstances.adr = new Chart(document.getElementById('chartADR'), {
+      type: 'bar',
+      data: {
+        labels: d.adr_distribution.map(a => a.bin),
+        datasets: [
+          {
+            label: '提交数', yAxisID: 'y',
+            data: d.adr_distribution.map(a => a.count),
+            backgroundColor: 'rgba(6,182,212,0.5)', borderRadius: 4
+          },
+          {
+            label: '平均GOP(%)', yAxisID: 'y1', type:'line',
+            data: d.adr_distribution.map(a => a.avg_gop),
+            borderColor: '#f59e0b', backgroundColor: 'transparent',
+            tension: 0.3, pointRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          y: { position:'left', title:{display:true,text:'提交数',color:'#6b6b8a'}, ticks:{color:'#6b6b8a'}, grid:{color:'#1a1a3e'} },
+          y1: { position:'right', title:{display:true,text:'GOP%',color:'#6b6b8a'}, ticks:{color:'#6b6b8a'}, grid:{display:false} },
+          x: { ticks:{color:'#c8c8e0'} }
+        },
+        plugins: { legend: { labels: { color: '#c8c8e0' } } }
+      }
+    });
+  }
+  
+  // ---- 回本年限分布 ----
+  if (d.payback_distribution.length > 0) {
+    chartInstances.pb = new Chart(document.getElementById('chartPayback'), {
+      type: 'bar',
+      data: {
+        labels: d.payback_distribution.map(p => p.bin),
+        datasets: [{
+          data: d.payback_distribution.map(p => p.count),
+          backgroundColor: d.payback_distribution.map((_, i) => {
+            const colors = ['#22c55e','#84cc16','#f59e0b','#f97316','#ef4444','#ec4899'];
+            return colors[i] || '#8b5cf6';
+          }),
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          y: { ticks:{color:'#6b6b8a'}, grid:{color:'#1a1a3e'} },
+          x: { ticks:{color:'#c8c8e0'} }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+  
+  // ---- 散点图 ----
+  if (d.scatter.length > 0) {
+    const points = d.scatter.map(s => ({
+      x: s.rooms, y: s.investment, r: Math.max(3, Math.min(20, (s.payback_years || 5) * 1.5)),
+      gop: s.gop_ratio, city: s.city
+    }));
+    chartInstances.scatter = new Chart(document.getElementById('chartScatter'), {
+      type: 'bubble',
+      data: {
+        datasets: [{
+          label: '项目',
+          data: points,
+          backgroundColor: points.map(p => {
+            const gop = p.gop || 50;
+            if (gop >= 55) return 'rgba(34,197,94,0.6)';
+            if (gop >= 40) return 'rgba(245,158,11,0.6)';
+            return 'rgba(239,68,68,0.6)';
+          })
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          x: { title:{display:true,text:'房间数',color:'#6b6b8a'}, ticks:{color:'#6b6b8a'}, grid:{color:'#1a1a3e'} },
+          y: { title:{display:true,text:'投资额(万)',color:'#6b6b8a'}, ticks:{color:'#6b6b8a'}, grid:{color:'#1a1a3e'} }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => `${ctx.raw.city || ''}: ${ctx.raw.x}间·¥${Math.round(ctx.raw.y)}万·GOP${ctx.raw.gop?.toFixed(1) || '?'}%`
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  // ---- 最近提交 ----
+  document.getElementById('recentCount').textContent = d.recent.length;
+  const verdictTag = {
+    feasible: 'tag-feasible', challenging: 'tag-challenging',
+    difficult: 'tag-difficult', impossible: 'tag-impossible'
+  };
+  const verdictLabel = {
+    feasible: '✅ 可行', challenging: '🔶 挑战', difficult: '🔴 压力', impossible: '⚠ 不可行'
+  };
+  document.getElementById('recentTable').innerHTML = d.recent.length ? `
+    <table>
+      <thead><tr>
+        <th>时间</th><th>城市</th><th>商圈</th><th>ADR</th><th>入住率</th><th>GOP率</th>
+        <th>回本</th><th>房间</th><th>投资(万)</th><th>判词</th>
+      </tr></thead>
+      <tbody>
+        ${d.recent.map(r => `
+          <tr>
+            <td>${new Date(r.created_at).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</td>
+            <td>${r.city || '—'}</td>
+            <td>${r.district || '—'}</td>
+            <td>¥${Math.round(r.adr||0)}</td>
+            <td>${(r.occupancy||0).toFixed(1)}%</td>
+            <td>${(r.gop_ratio||0).toFixed(1)}%</td>
+            <td>${(r.payback_years||0).toFixed(1)}年</td>
+            <td>${r.rooms||0}</td>
+            <td>${Math.round(r.investment||0)}</td>
+            <td><span class="tag ${verdictTag[r.verdict]||''}">${verdictLabel[r.verdict]||r.verdict}</span></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  ` : '<p style="color:var(--muted); text-align:center; padding:20px;">暂无提交数据</p>';
+}
+
+// 启动
+refreshDashboard();
+setInterval(refreshDashboard, 60000); // 每60秒自动刷新
+</script>
+
+</body>
+</html>
