@@ -154,6 +154,16 @@ footer {
   text-align: center; padding: 24px; color: var(--muted); font-size: 12px;
 }
 
+/* Scatter Legend */
+.scatter-legend {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 12px;
+}
+.scatter-legend hr { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+
 @media (max-width: 768px) {
   header { padding: 12px 16px; flex-direction: column; gap: 10px; align-items: flex-start; }
   .header-right { flex-wrap: wrap; }
@@ -227,11 +237,23 @@ footer {
   </div>
 </div>
 
-<!-- 散点图 -->
+<!-- 散点图 - Premium 气泡版 -->
 <div class="grid full">
   <div class="chart-box">
-    <h3>🔍 房间数 vs 投资额（气泡大小=回本年限，颜色=GOP率）</h3>
-    <canvas id="chartScatter" style="max-height:350px;"></canvas>
+    <h3>
+      🔍 投资分布全景 · 房间数 vs 投资额
+      <span style="font-weight:400;font-size:11px;color:var(--muted);margin-left:auto;">气泡大小=投资规模 · 颜色=GOP率</span>
+    </h3>
+    <div style="display:flex;align-items:flex-start;gap:16px;">
+      <canvas id="chartScatter" style="flex:1;max-height:380px;min-height:320px;"></canvas>
+      <div class="scatter-legend" id="scatterLegend" style="min-width:160px;display:flex;flex-direction:column;gap:4px;padding-top:20px;"></div>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:20px;font-size:11px;color:var(--muted);">
+      <span>🟢 GOP≥55% 优质</span>
+      <span>🟡 GOP 40-55% 一般</span>
+      <span>🔴 GOP&lt;40% 风险</span>
+      <span style="margin-left:auto;">悬停查看详情</span>
+    </div>
   </div>
 </div>
 
@@ -558,38 +580,133 @@ function renderAll(d) {
   // ═══════ 散点气泡图 ═══════
   if (d.scatter.length > 0) {
     const points = d.scatter.map(s => ({
-      x: s.rooms, y: s.investment, r: Math.max(4, Math.min(22, (s.payback_years || 5) * 1.5)),
-      gop: s.gop_ratio, city: s.city
+      x: s.rooms,
+      y: s.investment,
+      r: Math.max(5, Math.min(24, Math.sqrt(Math.max(1, s.investment || 500)) * 0.55)),
+      gop: s.gop_ratio || 0,
+      pb: s.payback_years || 5,
+      city: s.city || '?',
+      cityTier: s.city_tier || 4,
+      rooms: s.rooms || 0,
+      inv: s.investment || 0
     }));
+
+    // GOP 分类统计
+    const good = points.filter(p => p.gop >= 55);
+    const ok   = points.filter(p => p.gop >= 40 && p.gop < 55);
+    const bad  = points.filter(p => p.gop < 40);
+
+    // 图例
+    document.getElementById('scatterLegend').innerHTML = `
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text);">GOP率分布</div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);">
+        <span style="width:12px;height:12px;border-radius:50%;background:var(--green);display:inline-block;"></span>
+        优质 ≥55% <b style="margin-left:auto;">${good.length}</b>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);">
+        <span style="width:12px;height:12px;border-radius:50%;background:var(--orange);display:inline-block;"></span>
+        一般 40-55% <b style="margin-left:auto;">${ok.length}</b>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);">
+        <span style="width:12px;height:12px;border-radius:50%;background:var(--red);display:inline-block;"></span>
+        风险 &lt;40% <b style="margin-left:auto;">${bad.length}</b>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
+      <div style="font-size:11px;color:var(--muted);">总计 ${points.length} 个项目</div>
+    `;
+
+    // GOP颜色函数
+    function gopColor(gop) {
+      if (gop >= 55) return { bg: 'rgba(16,185,129,0.45)', border: '#059669' };
+      if (gop >= 40) return { bg: 'rgba(245,158,11,0.45)', border: '#d97706' };
+      return { bg: 'rgba(239,68,68,0.42)', border: '#dc2626' };
+    }
+
     chartInstances.scatter = new Chart(document.getElementById('chartScatter'), {
       type: 'bubble',
       data: {
         datasets: [{
-          label: '项目',
           data: points,
-          backgroundColor: points.map(p => {
-            const gop = p.gop || 50;
-            if (gop >= 55) return 'rgba(16,185,129,0.55)';
-            if (gop >= 40) return 'rgba(245,158,11,0.55)';
-            return 'rgba(239,68,68,0.5)';
+          backgroundColor: points.map(p => gopColor(p.gop).bg),
+          borderColor: points.map(p => gopColor(p.gop).border),
+          borderWidth: 1.5,
+          hoverBorderWidth: 3,
+          hoverBorderColor: '#1e293b',
+          hoverRadius: (ctx) => ctx.raw ? ctx.raw.r + 6 : 20,
+          hoverBackgroundColor: points.map(p => {
+            const c = gopColor(p.gop);
+            return c.bg.replace('0.45','0.72').replace('0.42','0.68');
           })
         }]
       },
       options: {
-        responsive: true, maintainAspectRatio: false,
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 600 },
         scales: defaultScales({
-          x: { title:{display:true,text:'房间数',color:C.tick} },
-          y: { title:{display:true,text:'投资额(万)',color:C.tick} }
+          x: {
+            title: { display: true, text: '房间数', color: C.tick, font: { size: 13, weight: 'bold' } },
+            ticks: { color: C.tick }, grid: { color: C.grid },
+            min: 0
+          },
+          y: {
+            title: { display: true, text: '投资额 (万元)', color: C.tick, font: { size: 13, weight: 'bold' } },
+            ticks: { color: C.tick, callback: v => '¥' + (v/10000 >= 1 ? (v/10000).toFixed(1)+'亿' : v+'万') },
+            grid: { color: C.grid },
+            min: 0
+          }
         }),
         plugins: {
           legend: { display: false },
           tooltip: {
+            backgroundColor: 'rgba(255,255,255,0.96)',
+            titleColor: '#1e293b',
+            bodyColor: '#475569',
+            borderColor: C.border,
+            borderWidth: 1,
+            padding: 12,
+            cornerRadius: 10,
+            titleFont: { size: 14, weight: 'bold' },
+            bodyFont: { size: 13 },
             callbacks: {
-              label: ctx => `${ctx.raw.city || ''}: ${ctx.raw.x}间 · ¥${Math.round(ctx.raw.y)}万 · GOP ${ctx.raw.gop?.toFixed(1) || '?'}%`
+              title: ctx => ctx[0].raw.city || '未知城市',
+              label: ctx => {
+                const p = ctx.raw;
+                const tierNames = {1:'一线',2:'新一线/二线',3:'三线',4:'四线及以下'};
+                const lines = [
+                  `房间数: ${p.rooms}间`,
+                  `投资额: ¥${Math.round(p.inv).toLocaleString()}万`,
+                  `GOP率: ${p.gop.toFixed(1)}%`,
+                  `回本: ${p.pb.toFixed(1)}年`,
+                  `城市等级: ${tierNames[p.cityTier] || 'T'+p.cityTier}`
+                ];
+                return lines;
+              }
             }
           }
         }
-      }
+      },
+      plugins: [{
+        id: 'bubbleGlow',
+        afterDatapointDraw(chart, args, opts) {
+          const { ctx, dataIndex } = args;
+          const meta = chart.getDatasetMeta(0);
+          const point = meta.data[dataIndex];
+          const p = points[dataIndex];
+          if (!p || !point) return;
+
+          // 仅在悬停时绘制光环
+          if (point._active !== true && point.active !== true) return;
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, point.options.radius + 6, 0, Math.PI * 2);
+          const c = gopColor(p.gop);
+          ctx.fillStyle = c.border.replace(')','').split(',').slice(0,3).join(',') + ',0.12)';
+          ctx.fill();
+          ctx.restore();
+        }
+      }]
     });
   }
   
