@@ -30,11 +30,8 @@ from flask import Flask, request, jsonify, render_template_string, g, abort
 # 配置
 # ============================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "data", "submissions.db")
+DB_PATH = os.path.join(BASE_DIR, "submissions.db")
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "admin888")
-
-# 确保 data 目录存在
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
@@ -587,6 +584,11 @@ def dashboard():
         '''
     
     # 读取看板 HTML 模板
+    template_path = os.path.join(BASE_DIR, 'dashboard.html')
+    if os.path.exists(template_path):
+        with open(template_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    # fallback: templates/ 子目录
     template_path = os.path.join(BASE_DIR, 'templates', 'dashboard.html')
     if os.path.exists(template_path):
         with open(template_path, 'r', encoding='utf-8') as f:
@@ -598,10 +600,15 @@ def health():
     return jsonify({'status': 'ok', 'time': datetime.now().isoformat()})
 
 # ============================================================
-# 启动
+# WSGI 入口 (用于 alwaysdata/uWSGI 等生产环境)
+# ============================================================
+init_db()
+application = app
+
+# ============================================================
+# 启动 (本地开发)
 # ============================================================
 if __name__ == '__main__':
-    init_db()
     print(f"\n{'='*60}")
     print(f"  酒店投资计算器 · 后台看板系统")
     print(f"  数据存储: {DB_PATH}")

@@ -7,21 +7,32 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {
-  --bg: #06060f;
-  --card: #0d0d24;
-  --border: #1a1a3e;
-  --text: #c8c8e0;
-  --muted: #6b6b8a;
-  --accent: #8b5cf6;
-  --green: #22c55e;
+  --bg: #f5f7fa;
+  --card: #ffffff;
+  --border: #e8ecf1;
+  --text: #2c3e50;
+  --muted: #94a3b8;
+  --accent: #6366f1;
+  --accent-light: #eef2ff;
+  --green: #10b981;
+  --green-bg: #ecfdf5;
   --orange: #f59e0b;
+  --orange-bg: #fffbeb;
   --red: #ef4444;
+  --red-bg: #fef2f2;
   --blue: #3b82f6;
   --cyan: #06b6d4;
   --pink: #ec4899;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-hover: 0 4px 12px rgba(0,0,0,0.08);
+  --radius: 12px;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); min-height:100vh; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg); color: var(--text); min-height:100vh;
+  line-height: 1.5;
+}
 body.loading { cursor:wait; }
 
 /* 顶栏 */
@@ -33,17 +44,23 @@ header {
   justify-content: space-between;
   align-items: center;
   position: sticky; top:0; z-index:100;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
 }
-header h1 { font-size: 20px; font-weight: 600; }
+header h1 { font-size: 20px; font-weight: 600; color: var(--text); }
 header h1 span { color: var(--accent); }
 .header-right { display: flex; gap: 12px; align-items: center; }
 .header-right select, .header-right button {
   padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
-  background: var(--bg); color: var(--text); font-size: 13px; cursor: pointer;
+  background: var(--card); color: var(--text); font-size: 13px; cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
 }
-.header-right button.refresh { background: var(--accent); border-color: var(--accent); color: white; }
-.header-right button:hover { opacity: 0.85; }
-.last-update { font-size: 11px; color: var(--muted); }
+.header-right select:hover { border-color: var(--accent); }
+.header-right button.refresh {
+  background: var(--accent); border-color: var(--accent); color: white; font-weight: 500;
+}
+.header-right button.refresh:hover { background: #4f46e5; }
+.last-update { font-size: 12px; color: var(--muted); }
 
 /* 概览卡片 */
 .overview {
@@ -55,14 +72,20 @@ header h1 span { color: var(--accent); }
 .stat-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.2s;
 }
-.stat-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-.stat-card .value { font-size: 32px; font-weight: 700; line-height: 1.1; }
+.stat-card:hover { box-shadow: var(--shadow-hover); }
+.stat-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-weight: 500; }
+.stat-card .value { font-size: 32px; font-weight: 700; line-height: 1.15; }
 .stat-card .sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.stat-card.accent { border-top: 3px solid var(--accent); background: var(--accent-light); }
 .stat-card.accent .value { color: var(--accent); }
+.stat-card.green { border-top: 3px solid var(--green); background: var(--green-bg); }
 .stat-card.green .value { color: var(--green); }
+.stat-card.orange { border-top: 3px solid var(--orange); background: var(--orange-bg); }
 .stat-card.orange .value { color: var(--orange); }
 
 /* 图表区 */
@@ -77,12 +100,13 @@ header h1 span { color: var(--accent); }
 .chart-box {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: var(--radius);
+  padding: 20px 24px;
   position: relative;
+  box-shadow: var(--shadow);
 }
-.chart-box h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-.chart-box h3 .badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--accent); color: white; }
+.chart-box h3 { font-size: 14px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; color: var(--text); }
+.chart-box h3 .badge { font-size: 11px; padding: 2px 10px; border-radius: 10px; background: var(--accent); color: white; font-weight: 500; }
 .chart-box canvas { max-height: 300px; }
 
 /* 判词分布 */
@@ -92,31 +116,58 @@ header h1 span { color: var(--accent); }
 .verdict-bar .label { font-size: 12px; color: var(--muted); }
 .verdict-bar .count { font-size: 20px; font-weight: 700; }
 
+/* Phase divider */
+.section-divider {
+  padding: 8px 32px 0;
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  letter-spacing: 0.5px; text-transform: uppercase;
+}
+
 /* 最近提交表格 */
 .table-wrap { overflow-x: auto; }
+.table-wrap::-webkit-scrollbar { height: 6px; }
+.table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
-th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; white-space: nowrap; position: sticky; top: 0; background: var(--card); }
-td { white-space: nowrap; }
-.tag { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 500; }
-.tag-feasible { background: #064e18; color: #22c55e; }
-.tag-challenging { background: #4a3000; color: #f59e0b; }
-.tag-difficult { background: #4a1010; color: #ef4444; }
-.tag-impossible { background: #3a0a3a; color: #ec4899; }
+th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; white-space: nowrap; position: sticky; top: 0; background: var(--card); z-index: 1; }
+td { white-space: nowrap; color: var(--text); }
+tr:hover td { background: #f8fafc; }
+.tag { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.tag-feasible { background: #dcfce7; color: #166534; }
+.tag-challenging { background: #fef3c7; color: #92400e; }
+.tag-difficult { background: #fee2e2; color: #b91c1c; }
+.tag-impossible { background: #fce7f3; color: #9d174d; }
 
 /* 加载/空状态 */
 .loading-overlay {
   display: none;
   position: absolute; inset:0;
-  background: rgba(6,6,15,0.7); border-radius:12px;
+  background: rgba(255,255,255,0.75); border-radius:12px;
   justify-content:center; align-items:center; flex-direction:column; gap:12px;
 }
 .loading-overlay.show { display:flex; }
 .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Footer */
+footer {
+  text-align: center; padding: 24px; color: var(--muted); font-size: 12px;
+}
+
+/* Scatter Legend */
+.scatter-legend {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 12px;
+}
+.scatter-legend hr { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+
 @media (max-width: 768px) {
-  .overview { padding: 16px; }
+  header { padding: 12px 16px; flex-direction: column; gap: 10px; align-items: flex-start; }
+  .header-right { flex-wrap: wrap; }
+  .overview { padding: 16px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
   .grid { padding: 0 16px 16px; }
   .grid.col3 { grid-template-columns: 1fr; }
   .chart-box { overflow: hidden; }
@@ -186,11 +237,23 @@ td { white-space: nowrap; }
   </div>
 </div>
 
-<!-- 散点图 -->
+<!-- 散点图 - Premium 气泡版 -->
 <div class="grid full">
   <div class="chart-box">
-    <h3>🔍 房间数 vs 投资额（气泡大小=回本年限，颜色=GOP率）</h3>
-    <canvas id="chartScatter" style="max-height:350px;"></canvas>
+    <h3>
+      🔍 投资分布全景 · 房间数 vs 投资额
+      <span style="font-weight:400;font-size:11px;color:var(--muted);margin-left:auto;">气泡大小=投资规模 · 颜色=GOP率</span>
+    </h3>
+    <div style="display:flex;align-items:flex-start;gap:16px;">
+      <canvas id="chartScatter" style="flex:1;max-height:380px;min-height:320px;"></canvas>
+      <div class="scatter-legend" id="scatterLegend" style="min-width:160px;display:flex;flex-direction:column;gap:4px;padding-top:20px;"></div>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:20px;font-size:11px;color:var(--muted);">
+      <span>🟢 GOP≥55% 优质</span>
+      <span>🟡 GOP 40-55% 一般</span>
+      <span>🔴 GOP&lt;40% 风险</span>
+      <span style="margin-left:auto;">悬停查看详情</span>
+    </div>
   </div>
 </div>
 
@@ -202,15 +265,35 @@ td { white-space: nowrap; }
   </div>
 </div>
 
+<footer>酒店投资计算器 · 后台数据看板 v1.0</footer>
+
 <script>
 // ============================================================
 // Dashboard Logic
 // ============================================================
 const API = window.location.origin + '/api/dashboard';
-const PASS = new URLSearchParams(window.location.search).get('auth') || '';
 
 let chartInstances = {};
 let currentData = null;
+
+// ── Chart.js 全局配色（白底适配） ──
+const C = {
+  accent:     '#6366f1',
+  accentBg:   'rgba(99,102,241,0.08)',
+  green:      '#10b981',
+  greenBg:    'rgba(16,185,129,0.08)',
+  orange:     '#f59e0b',
+  orangeBg:   'rgba(245,158,11,0.08)',
+  red:        '#ef4444',
+  pink:       '#ec4899',
+  blue:       '#3b82f6',
+  cyan:       '#06b6d4',
+  cyanBg:     'rgba(6,182,212,0.08)',
+  grid:       '#e8ecf1',
+  tick:       '#94a3b8',
+  text:       '#475569',
+  white:      '#ffffff',
+};
 
 function destroyCharts() {
   Object.values(chartInstances).forEach(c => c.destroy());
@@ -239,14 +322,29 @@ async function refreshDashboard() {
 function showError(msg) {
   document.getElementById('overview').innerHTML = 
     `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--muted)">
-       ⚠️ ${msg}<br><small>API: ${API}</small>
+       ⚠️ ${msg}<br><small style="color:var(--muted)">API: ${API}</small>
      </div>`;
+}
+
+function chartOptions(extra = {}) {
+  return Object.assign({
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { intersect: false, mode: 'index' },
+    plugins: { legend: { labels: { color: C.text, usePointStyle: true, padding: 16, font: { size: 12 } } } }
+  }, extra);
+}
+
+function defaultScales(overrides = {}) {
+  const baseX = { ticks: { color: C.tick }, grid: { color: C.grid } };
+  const baseY = { ticks: { color: C.tick }, grid: { color: C.grid } };
+  return Object.assign({ x: baseX, y: baseY }, overrides);
 }
 
 function renderAll(d) {
   const s = d.summary, a = d.averages, v = d.verdicts;
   
-  // ---- 概览卡片 ----
+  // ═══════ 概览卡片 ═══════
   document.getElementById('overview').innerHTML = `
     <div class="stat-card accent">
       <div class="label">总提交数</div>
@@ -275,38 +373,44 @@ function renderAll(d) {
     </div>
   `;
   
-  // ---- 判词分布 ----
+  // ═══════ 判词分布 ═══════
   const totalV = v.feasible + v.challenging + v.difficult + v.impossible || 1;
+  const verdictColors = {
+    green:  '#10b981',
+    orange: '#f59e0b',
+    red:    '#ef4444',
+    pink:   '#ec4899'
+  };
   document.getElementById('verdictChart').innerHTML = `
     <div class="verdict-bars">
       <div class="verdict-bar">
-        <div class="count" style="color:var(--green)">${v.feasible}</div>
-        <div class="bar" style="background:var(--green); width:${(v.feasible/totalV*100).toFixed(0)}%"></div>
+        <div class="count" style="color:${verdictColors.green}">${v.feasible}</div>
+        <div class="bar" style="background:${verdictColors.green}; width:${(v.feasible/totalV*100).toFixed(0)}%"></div>
         <div class="label">✅ 可行</div>
       </div>
       <div class="verdict-bar">
-        <div class="count" style="color:var(--orange)">${v.challenging}</div>
-        <div class="bar" style="background:var(--orange); width:${(v.challenging/totalV*100).toFixed(0)}%"></div>
+        <div class="count" style="color:${verdictColors.orange}">${v.challenging}</div>
+        <div class="bar" style="background:${verdictColors.orange}; width:${(v.challenging/totalV*100).toFixed(0)}%"></div>
         <div class="label">🔶 有挑战</div>
       </div>
       <div class="verdict-bar">
-        <div class="count" style="color:var(--red)">${v.difficult}</div>
-        <div class="bar" style="background:var(--red); width:${(v.difficult/totalV*100).toFixed(0)}%"></div>
+        <div class="count" style="color:${verdictColors.red}">${v.difficult}</div>
+        <div class="bar" style="background:${verdictColors.red}; width:${(v.difficult/totalV*100).toFixed(0)}%"></div>
         <div class="label">🔴 压力大</div>
       </div>
       <div class="verdict-bar">
-        <div class="count" style="color:var(--pink)">${v.impossible}</div>
-        <div class="bar" style="background:var(--pink); width:${(v.impossible/totalV*100).toFixed(0)}%"></div>
+        <div class="count" style="color:${verdictColors.pink}">${v.impossible}</div>
+        <div class="bar" style="background:${verdictColors.pink}; width:${(v.impossible/totalV*100).toFixed(0)}%"></div>
         <div class="label">⚠️ 不可行</div>
       </div>
     </div>
   `;
   
-  // ---- 时间趋势 ----
   destroyCharts();
+  
+  // ═══════ 时间趋势 ── 双轴折线 ═══════
   if (d.trend.length > 0) {
-    const ctx = document.getElementById('chartTrend').getContext('2d');
-    chartInstances.trend = new Chart(ctx, {
+    chartInstances.trend = new Chart(document.getElementById('chartTrend'), {
       type: 'line',
       data: {
         labels: d.trend.map(r => r.day),
@@ -314,52 +418,53 @@ function renderAll(d) {
           {
             label: '提交数', yAxisID: 'y',
             data: d.trend.map(r => r.count),
-            borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.1)',
-            fill: true, tension: 0.3, pointRadius: 2
+            borderColor: C.accent, backgroundColor: C.accentBg,
+            fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: C.accent,
+            borderWidth: 2
           },
           {
             label: '平均回本(年)', yAxisID: 'y1',
             data: d.trend.map(r => r.avg_pb),
-            borderColor: '#f59e0b', borderDash: [4,4],
-            tension: 0.3, pointRadius: 2
+            borderColor: C.orange, borderDash: [5,3],
+            tension: 0.3, pointRadius: 3, pointBackgroundColor: C.orange,
+            borderWidth: 2
           }
         ]
       },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        interaction: { intersect: false, mode: 'index' },
-        scales: {
-          y: { type:'linear', position:'left', title:{display:true,text:'提交数',color:'#6b6b8a'}, ticks:{color:'#6b6b8a'}, grid:{color:'#1a1a3e'} },
-          y1: { type:'linear',position:'right', title:{display:true,text:'年',color:'#6b6b8a'}, ticks:{color:'#6b6b8a'}, grid:{display:false} },
-          x: { ticks:{color:'#6b6b8a', maxTicksLimit:10}, grid:{color:'#1a1a3e'} }
-        },
-        plugins: { legend: { labels: { color: '#c8c8e0' } } }
-      }
+      options: chartOptions({
+        scales: defaultScales({
+          y: { type:'linear', position:'left', title:{display:true,text:'提交数',color:C.tick}, grid:{color:C.grid} },
+          y1: { type:'linear', position:'right', title:{display:true,text:'年',color:C.tick}, ticks:{color:C.tick}, grid:{display:false} },
+          x: { ticks:{color:C.tick, maxTicksLimit:10}, grid:{color:C.grid} }
+        })
+      })
     });
   }
   
-  // ---- 酒店模式 ----
+  // ═══════ 酒店模式 ── 甜甜圈 ═══════
   if (d.hotel_modes.length > 0) {
     const modeLabels = { standard:'标准商务', resort:'景区度假', esports:'电竞酒店' };
-    const modeColors = { standard:'#3b82f6', resort:'#22c55e', esports:'#ec4899' };
+    const modeColors = { standard: C.blue, resort: C.green, esports: C.pink };
     chartInstances.modes = new Chart(document.getElementById('chartModes'), {
       type: 'doughnut',
       data: {
         labels: d.hotel_modes.map(m => modeLabels[m.hotel_mode] || m.hotel_mode),
         datasets: [{
           data: d.hotel_modes.map(m => m.count),
-          backgroundColor: d.hotel_modes.map(m => modeColors[m.hotel_mode] || '#8b5cf6'),
-          borderColor: '#0d0d24', borderWidth: 2
+          backgroundColor: d.hotel_modes.map(m => modeColors[m.hotel_mode] || C.accent),
+          borderColor: C.white, borderWidth: 2
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#c8c8e0', padding: 16 } } }
+        plugins: {
+          legend: { labels: { color: C.text, usePointStyle: true, padding: 16, font: { size: 12 } } }
+        }
       }
     });
   }
   
-  // ---- 城市排行 ----
+  // ═══════ 城市排行 ── 横向柱状 ═══════
   if (d.cities.length > 0) {
     const top15 = d.cities.slice(0, 15);
     chartInstances.cities = new Chart(document.getElementById('chartCities'), {
@@ -369,7 +474,10 @@ function renderAll(d) {
         datasets: [{
           label: '提交数',
           data: top15.map(c => c.count),
-          backgroundColor: top15.map((_, i) => `hsla(${260 - i*12}, 70%, 55%, 0.8)`),
+          backgroundColor: top15.map((_, i) => {
+            const h = 240 - i * 7;
+            return `hsla(${h}, 55%, 55%, 0.72)`;
+          }),
           borderRadius: 4
         }]
       },
@@ -377,15 +485,15 @@ function renderAll(d) {
         indexAxis: 'y',
         responsive: true, maintainAspectRatio: false,
         scales: {
-          x: { ticks:{color:'#6b6b8a'}, grid:{color:'#1a1a3e'} },
-          y: { ticks:{color:'#c8c8e0', font:{size:12}} }
+          x: { ticks:{color:C.tick}, grid:{color:C.grid} },
+          y: { ticks:{color:C.text, font:{size:12}} }
         },
         plugins: { legend: { display: false } }
       }
     });
   }
   
-  // ---- 城市等级 ----
+  // ═══════ 城市等级 ── 柱+折线 ═══════
   if (d.tiers.length > 0) {
     const tierLabels = {1:'一线', 2:'新一线/二线', 3:'三线', 4:'四线', 5:'五线'};
     chartInstances.tiers = new Chart(document.getElementById('chartTiers'), {
@@ -396,29 +504,28 @@ function renderAll(d) {
           {
             label: '提交数', yAxisID: 'y',
             data: d.tiers.map(t => t.count),
-            backgroundColor: 'rgba(139,92,246,0.6)', borderRadius: 4
+            backgroundColor: 'rgba(99,102,241,0.35)', borderRadius: 4
           },
           {
             label: '平均GOP率(%)', yAxisID: 'y1', type:'line',
             data: d.tiers.map(t => t.avg_gop),
-            borderColor: '#22c55e', backgroundColor: 'transparent',
-            tension: 0.3, pointRadius: 4, pointBackgroundColor: '#22c55e'
+            borderColor: C.green, backgroundColor: 'transparent',
+            tension: 0.3, pointRadius: 5, pointBackgroundColor: C.green,
+            borderWidth: 2
           }
         ]
       },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        scales: {
-          y: { position:'left', title:{display:true,text:'提交数',color:'#6b6b8a'}, ticks:{color:'#6b6b8a'}, grid:{color:'#1a1a3e'} },
-          y1: { position:'right', title:{display:true,text:'GOP%',color:'#6b6b8a'}, min:0, max:80, ticks:{color:'#6b6b8a'}, grid:{display:false} },
-          x: { ticks:{color:'#c8c8e0'} }
-        },
-        plugins: { legend: { labels: { color: '#c8c8e0' } } }
-      }
+      options: chartOptions({
+        scales: defaultScales({
+          y: { position:'left', title:{display:true,text:'提交数',color:C.tick} },
+          y1: { position:'right', title:{display:true,text:'GOP%',color:C.tick}, min:0, max:80, grid:{display:false} },
+          x: { ticks:{color:C.text} }
+        })
+      })
     });
   }
   
-  // ---- ADR分布 ----
+  // ═══════ ADR分布 ── 柱+折线 ═══════
   if (d.adr_distribution.length > 0) {
     chartInstances.adr = new Chart(document.getElementById('chartADR'), {
       type: 'bar',
@@ -428,93 +535,182 @@ function renderAll(d) {
           {
             label: '提交数', yAxisID: 'y',
             data: d.adr_distribution.map(a => a.count),
-            backgroundColor: 'rgba(6,182,212,0.5)', borderRadius: 4
+            backgroundColor: C.cyanBg, borderColor: C.cyan, borderWidth: 1, borderRadius: 4
           },
           {
             label: '平均GOP(%)', yAxisID: 'y1', type:'line',
             data: d.adr_distribution.map(a => a.avg_gop),
-            borderColor: '#f59e0b', backgroundColor: 'transparent',
-            tension: 0.3, pointRadius: 4
+            borderColor: C.orange, backgroundColor: 'transparent',
+            tension: 0.3, pointRadius: 5, pointBackgroundColor: C.orange,
+            borderWidth: 2
           }
         ]
       },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        scales: {
-          y: { position:'left', title:{display:true,text:'提交数',color:'#6b6b8a'}, ticks:{color:'#6b6b8a'}, grid:{color:'#1a1a3e'} },
-          y1: { position:'right', title:{display:true,text:'GOP%',color:'#6b6b8a'}, ticks:{color:'#6b6b8a'}, grid:{display:false} },
-          x: { ticks:{color:'#c8c8e0'} }
-        },
-        plugins: { legend: { labels: { color: '#c8c8e0' } } }
-      }
+      options: chartOptions({
+        scales: defaultScales({
+          y: { position:'left', title:{display:true,text:'提交数',color:C.tick} },
+          y1: { position:'right', title:{display:true,text:'GOP%',color:C.tick}, grid:{display:false} },
+          x: { ticks:{color:C.text} }
+        })
+      })
     });
   }
   
-  // ---- 回本年限分布 ----
+  // ═══════ 回本年限分布 ── 渐变色柱状 ═══════
   if (d.payback_distribution.length > 0) {
+    const pbColors = ['#10b981','#84cc16','#f59e0b','#f97316','#ef4444','#ec4899'];
     chartInstances.pb = new Chart(document.getElementById('chartPayback'), {
       type: 'bar',
       data: {
         labels: d.payback_distribution.map(p => p.bin),
         datasets: [{
           data: d.payback_distribution.map(p => p.count),
-          backgroundColor: d.payback_distribution.map((_, i) => {
-            const colors = ['#22c55e','#84cc16','#f59e0b','#f97316','#ef4444','#ec4899'];
-            return colors[i] || '#8b5cf6';
-          }),
+          backgroundColor: d.payback_distribution.map((_, i) => pbColors[i] || C.accent),
           borderRadius: 6
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        scales: {
-          y: { ticks:{color:'#6b6b8a'}, grid:{color:'#1a1a3e'} },
-          x: { ticks:{color:'#c8c8e0'} }
-        },
+        scales: defaultScales({ x: { ticks:{color:C.text} } }),
         plugins: { legend: { display: false } }
       }
     });
   }
   
-  // ---- 散点图 ----
+  // ═══════ 散点气泡图 ═══════
   if (d.scatter.length > 0) {
     const points = d.scatter.map(s => ({
-      x: s.rooms, y: s.investment, r: Math.max(3, Math.min(20, (s.payback_years || 5) * 1.5)),
-      gop: s.gop_ratio, city: s.city
+      x: s.rooms,
+      y: s.investment,
+      r: Math.max(5, Math.min(24, Math.sqrt(Math.max(1, s.investment || 500)) * 0.55)),
+      gop: s.gop_ratio || 0,
+      pb: s.payback_years || 5,
+      city: s.city || '?',
+      cityTier: s.city_tier || 4,
+      rooms: s.rooms || 0,
+      inv: s.investment || 0
     }));
+
+    // GOP 分类统计
+    const good = points.filter(p => p.gop >= 55);
+    const ok   = points.filter(p => p.gop >= 40 && p.gop < 55);
+    const bad  = points.filter(p => p.gop < 40);
+
+    // 图例
+    document.getElementById('scatterLegend').innerHTML = `
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text);">GOP率分布</div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);">
+        <span style="width:12px;height:12px;border-radius:50%;background:var(--green);display:inline-block;"></span>
+        优质 ≥55% <b style="margin-left:auto;">${good.length}</b>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);">
+        <span style="width:12px;height:12px;border-radius:50%;background:var(--orange);display:inline-block;"></span>
+        一般 40-55% <b style="margin-left:auto;">${ok.length}</b>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);">
+        <span style="width:12px;height:12px;border-radius:50%;background:var(--red);display:inline-block;"></span>
+        风险 &lt;40% <b style="margin-left:auto;">${bad.length}</b>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
+      <div style="font-size:11px;color:var(--muted);">总计 ${points.length} 个项目</div>
+    `;
+
+    // GOP颜色函数
+    function gopColor(gop) {
+      if (gop >= 55) return { bg: 'rgba(16,185,129,0.45)', border: '#059669' };
+      if (gop >= 40) return { bg: 'rgba(245,158,11,0.45)', border: '#d97706' };
+      return { bg: 'rgba(239,68,68,0.42)', border: '#dc2626' };
+    }
+
     chartInstances.scatter = new Chart(document.getElementById('chartScatter'), {
       type: 'bubble',
       data: {
         datasets: [{
-          label: '项目',
           data: points,
-          backgroundColor: points.map(p => {
-            const gop = p.gop || 50;
-            if (gop >= 55) return 'rgba(34,197,94,0.6)';
-            if (gop >= 40) return 'rgba(245,158,11,0.6)';
-            return 'rgba(239,68,68,0.6)';
+          backgroundColor: points.map(p => gopColor(p.gop).bg),
+          borderColor: points.map(p => gopColor(p.gop).border),
+          borderWidth: 1.5,
+          hoverBorderWidth: 3,
+          hoverBorderColor: '#1e293b',
+          hoverRadius: (ctx) => ctx.raw ? ctx.raw.r + 6 : 20,
+          hoverBackgroundColor: points.map(p => {
+            const c = gopColor(p.gop);
+            return c.bg.replace('0.45','0.72').replace('0.42','0.68');
           })
         }]
       },
       options: {
-        responsive: true, maintainAspectRatio: false,
-        scales: {
-          x: { title:{display:true,text:'房间数',color:'#6b6b8a'}, ticks:{color:'#6b6b8a'}, grid:{color:'#1a1a3e'} },
-          y: { title:{display:true,text:'投资额(万)',color:'#6b6b8a'}, ticks:{color:'#6b6b8a'}, grid:{color:'#1a1a3e'} }
-        },
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 600 },
+        scales: defaultScales({
+          x: {
+            title: { display: true, text: '房间数', color: C.tick, font: { size: 13, weight: 'bold' } },
+            ticks: { color: C.tick }, grid: { color: C.grid },
+            min: 0
+          },
+          y: {
+            title: { display: true, text: '投资额 (万元)', color: C.tick, font: { size: 13, weight: 'bold' } },
+            ticks: { color: C.tick, callback: v => '¥' + (v/10000 >= 1 ? (v/10000).toFixed(1)+'亿' : v+'万') },
+            grid: { color: C.grid },
+            min: 0
+          }
+        }),
         plugins: {
           legend: { display: false },
           tooltip: {
+            backgroundColor: 'rgba(255,255,255,0.96)',
+            titleColor: '#1e293b',
+            bodyColor: '#475569',
+            borderColor: C.border,
+            borderWidth: 1,
+            padding: 12,
+            cornerRadius: 10,
+            titleFont: { size: 14, weight: 'bold' },
+            bodyFont: { size: 13 },
             callbacks: {
-              label: ctx => `${ctx.raw.city || ''}: ${ctx.raw.x}间·¥${Math.round(ctx.raw.y)}万·GOP${ctx.raw.gop?.toFixed(1) || '?'}%`
+              title: ctx => ctx[0].raw.city || '未知城市',
+              label: ctx => {
+                const p = ctx.raw;
+                const tierNames = {1:'一线',2:'新一线/二线',3:'三线',4:'四线及以下'};
+                const lines = [
+                  `房间数: ${p.rooms}间`,
+                  `投资额: ¥${Math.round(p.inv).toLocaleString()}万`,
+                  `GOP率: ${p.gop.toFixed(1)}%`,
+                  `回本: ${p.pb.toFixed(1)}年`,
+                  `城市等级: ${tierNames[p.cityTier] || 'T'+p.cityTier}`
+                ];
+                return lines;
+              }
             }
           }
         }
-      }
+      },
+      plugins: [{
+        id: 'bubbleGlow',
+        afterDatapointDraw(chart, args, opts) {
+          const { ctx, dataIndex } = args;
+          const meta = chart.getDatasetMeta(0);
+          const point = meta.data[dataIndex];
+          const p = points[dataIndex];
+          if (!p || !point) return;
+
+          // 仅在悬停时绘制光环
+          if (point._active !== true && point.active !== true) return;
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, point.options.radius + 6, 0, Math.PI * 2);
+          const c = gopColor(p.gop);
+          ctx.fillStyle = c.border.replace(')','').split(',').slice(0,3).join(',') + ',0.12)';
+          ctx.fill();
+          ctx.restore();
+        }
+      }]
     });
   }
   
-  // ---- 最近提交 ----
+  // ═══════ 最近提交表 ═══════
   document.getElementById('recentCount').textContent = d.recent.length;
   const verdictTag = {
     feasible: 'tag-feasible', challenging: 'tag-challenging',
@@ -546,12 +742,12 @@ function renderAll(d) {
         `).join('')}
       </tbody>
     </table>
-  ` : '<p style="color:var(--muted); text-align:center; padding:20px;">暂无提交数据</p>';
+  ` : '<p style="color:var(--muted); text-align:center; padding:30px;">暂无提交数据</p>';
 }
 
 // 启动
 refreshDashboard();
-setInterval(refreshDashboard, 60000); // 每60秒自动刷新
+setInterval(refreshDashboard, 60000);
 </script>
 
 </body>
