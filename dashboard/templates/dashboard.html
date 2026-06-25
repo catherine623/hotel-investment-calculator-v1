@@ -215,14 +215,28 @@ footer {
   </div>
 </div>
 
-<div class="grid">
+<div class="grid col3">
   <div class="chart-box">
-    <h3>🏙️ 热门城市 Top 15</h3>
-    <canvas id="chartCities"></canvas>
+    <h3>🏙️ 测算城市 Top 10</h3>
+    <canvas id="chartCitiesTop10"></canvas>
   </div>
   <div class="chart-box">
-    <h3>📊 城市等级分析</h3>
+    <h3>📊 城市等级偏好</h3>
     <canvas id="chartTiers"></canvas>
+  </div>
+  <div class="chart-box">
+    <h3>💰 投资总额分布</h3>
+    <canvas id="chartInvestDistribution"></canvas>
+  </div>
+</div>
+
+<div class="grid full">
+  <div class="chart-box">
+    <h3>
+      🗺️ 区域分布热力图
+      <span style="font-weight:400;font-size:11px;color:var(--muted);margin-left:auto;">颜色越深=测算越多</span>
+    </h3>
+    <div id="regionHeatmap" style="display:flex;gap:12px;flex-wrap:wrap;min-height:160px;align-items:stretch;padding:10px 0;"></div>
   </div>
 </div>
 
@@ -464,28 +478,29 @@ function renderAll(d) {
     });
   }
   
-  // ═══════ 城市排行 ── 横向柱状 ═══════
+  // ═══════ 城市 Top 10 ── 横向柱状 ═══════
   if (d.cities.length > 0) {
-    const top15 = d.cities.slice(0, 15);
-    chartInstances.cities = new Chart(document.getElementById('chartCities'), {
+    const top10 = d.cities.slice(0, 10);
+    chartInstances.citiesTop10 = new Chart(document.getElementById('chartCitiesTop10'), {
       type: 'bar',
       data: {
-        labels: top15.map(c => c.city),
+        labels: top10.map(c => c.city),
         datasets: [{
-          label: '提交数',
-          data: top15.map(c => c.count),
-          backgroundColor: top15.map((_, i) => {
-            const h = 240 - i * 7;
-            return `hsla(${h}, 55%, 55%, 0.72)`;
+          label: '测算次数',
+          data: top10.map(c => c.count),
+          backgroundColor: top10.map((_, i) => {
+            const h = 215 - i * 10;
+            return `hsla(${h}, 60%, 55%, 0.78)`;
           }),
-          borderRadius: 4
+          borderRadius: 5,
+          borderSkipped: false
         }]
       },
       options: {
         indexAxis: 'y',
         responsive: true, maintainAspectRatio: false,
         scales: {
-          x: { ticks:{color:C.tick}, grid:{color:C.grid} },
+          x: { ticks:{color:C.tick}, grid:{color:C.grid}, title:{display:true,text:'测算次数',color:C.tick} },
           y: { ticks:{color:C.text, font:{size:12}} }
         },
         plugins: { legend: { display: false } }
@@ -523,6 +538,74 @@ function renderAll(d) {
         })
       })
     });
+  }
+  
+  // ═══════ 投资总额分布 ── 环形图 ═══════
+  if (d.investment_distribution && d.investment_distribution.length > 0) {
+    const investColors = ['#a78bfa','#6366f1','#3b82f6','#06b6d4','#10b981','#f59e0b','#ef4444'];
+    const totalInvest = d.investment_distribution.reduce((s,i)=>s+i.count, 0);
+    chartInstances.investDist = new Chart(document.getElementById('chartInvestDistribution'), {
+      type: 'doughnut',
+      data: {
+        labels: d.investment_distribution.map(i => i.bin),
+        datasets: [{
+          data: d.investment_distribution.map(i => i.count),
+          backgroundColor: d.investment_distribution.map((_,i) => investColors[i] || C.accent),
+          borderColor: C.white, borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: C.text, usePointStyle: true, padding: 12, font: { size: 11 } } },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const item = d.investment_distribution[ctx.dataIndex];
+                const pct = totalInvest > 0 ? (item.count/totalInvest*100).toFixed(1) : 0;
+                return `${item.bin}: ${item.count}次 (${pct}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  // ═══════ 区域热力图 ═══════
+  if (d.regions && d.regions.length > 0) {
+    const maxCount = Math.max(...d.regions.map(r => r.count));
+    const regionHtml = d.regions.map(r => {
+      const intensity = maxCount > 0 ? r.count / maxCount : 0;
+      // 从浅蓝到深蓝
+      const alpha = 0.22 + intensity * 0.58;
+      const bgColor = `rgba(59,130,246,${alpha.toFixed(2)})`;
+      const textColor = intensity > 0.6 ? '#1e3a5f' : '#475569';
+      return `
+        <div style="
+          flex:1; min-width:120px; max-width:180px;
+          background:${bgColor};
+          border:2px solid ${intensity > 0.5 ? 'rgba(59,130,246,0.6)' : 'rgba(59,130,246,0.15)'};
+          border-radius:14px;
+          padding:18px 14px;
+          text-align:center;
+          display:flex;flex-direction:column;justify-content:center;align-items:center;
+          transition:all 0.25s;
+          cursor:default;
+        "
+        onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 6px 20px rgba(59,130,246,0.25)';"
+        onmouseout="this.style.transform='';this.style.boxShadow='';"
+        >
+          <div style="font-size:13px;font-weight:600;color:${textColor};margin-bottom:8px;">${r.region}</div>
+          <div style="font-size:26px;font-weight:800;color:#2563eb;">${r.count}</div>
+          <div style="font-size:11px;color:${textColor};margin-top:4px;">次测算</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5;">
+            均GOP ${r.avg_gop}%<br>
+            均回本 ${r.avg_pb}年
+          </div>
+        </div>`;
+    }).join('');
+    document.getElementById('regionHeatmap').innerHTML = regionHtml;
   }
   
   // ═══════ ADR分布 ── 柱+折线 ═══════
