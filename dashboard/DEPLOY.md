@@ -1,99 +1,148 @@
-# 后台看板系统 - 部署指南
+# 后台看板系统 · 部署指南
 
-## 架构
+## 推荐方案：alwaysdata.com（免费 / 100MB / 无休眠）
+
+alwaysdata.com 是目前**唯一可用的免费 Python Flask 托管平台**：
+- ✅ 免费 100MB 磁盘，无请求限制
+- ✅ 支持 SSH/SFTP 上传文件
+- ✅ 原生 WSGI 支持，无需额外配置
+- ✅ HTTPS 自动签发
+- ✅ **不会休眠**（Render 15分钟休眠，PythonAnywhere 机器人验证）
+
+> 已尝试的不可用方案：Render（需信用卡）、PythonAnywhere（注册机器人拦截）
+
+---
+
+## 部署步骤（手动，约10分钟）
+
+### 第1步：注册 alwaysdata
+
+1. 打开 https://www.alwaysdata.com/en/register/
+2. 填写邮箱、密码、姓名
+3. 邮箱验证 → 登录
+4. 进入管理面板 https://admin.alwaysdata.com
+
+### 第2步：上传文件
+
+**方法A：SFTP（推荐）**
 
 ```
-用户浏览器(catherine623.github.io) → POST → Flask API(公开服务器)
-                                              ↓ SQLite
-管理员浏览器 → GET /?auth=密码 → 看板页面(Flask渲染)
+服务器: ssh-alwaysdata.com
+端口: 22
+用户名: (在 admin → SSH 中查看)
+密码: (你的账户密码)
 ```
 
-## 方案一：Render.com 免费部署（推荐）
+上传 `dashboard/` 目录下的所有文件到远程 `/dashboard/` 目录：
 
-### 1. 创建 Render 账号
-访问 https://render.com/ → Sign up with GitHub
+```
+远程目录结构：
+/home/<username>/dashboard/
+  ├── server.py          ← Flask 主程序
+  ├── requirements.txt   ← 依赖清单
+  ├── submissions.db     ← SQLite 数据库（初始为空）
+  └── templates/
+      └── dashboard.html ← 看板模板
+```
 
-### 2. 创建 Web Service
-- 点击 "New +" → "Web Service"
-- 连接 GitHub 仓库 `catherine623/hotel-investment-calculator-v1`
-- 配置:
-  - **Root Directory**: `dashboard`
-  - **Runtime**: Python 3
-  - **Build Command**: `pip install -r requirements.txt`
-  - **Start Command**: `python server.py`
-  - **Plan**: Free
-- 点击 "Create Web Service"
+**方法B：用 WinSCP/FileZilla 上传**
 
-### 3. 获取公开地址
-部署完成后，Render 会分配一个地址如:
-`https://hotel-dashboard.onrender.com`
+- 主机名: `ssh-alwaysdata.com`
+- 协议: SFTP
+- 将本地 `dashboard/` 文件夹内容拖到远程
 
-### 4. 配置计算器
-修改 `index.html` 中第 3311 行的:
+### 第3步：创建虚拟环境 + 安装依赖
+
+SSH 登录后执行：
+
+```bash
+ssh <username>@ssh-alwaysdata.com
+cd ~/dashboard
+python3.12 -m venv env
+env/bin/pip install flask
+```
+
+### 第4步：创建网站
+
+1. 在 admin.alwaysdata.com → **Web** → **Sites** → **Add a site**
+2. 填写配置：
+
+| 字段 | 值 |
+|------|-----|
+| **Name** | `dashboard` |
+| **Addresses** | 使用默认分配的域名 `username.alwaysdata.net`，或添加自定义域名 |
+| **Type** | **WSGI** |
+| **Python version** | 3.12 |
+| **Working directory** | `/home/<username>/dashboard` |
+| **Virtualenv directory** | `/home/<username>/dashboard/env` |
+| **Application path** | `server:application` |
+| **Trim path** | ✅ 勾选 |
+
+3. 点击 **Create**
+
+⚠️ 重要：`Application path` 填 `server:application`（`server.py` 中的 `application` 变量）
+
+### 第5步：验证部署
+
+访问看板：
+```
+https://<username>.alwaysdata.net/?auth=admin888
+```
+
+API 健康检查：
+```
+https://<username>.alwaysdata.net/api/health
+```
+
+---
+
+## 配置计算器前端
+
+部署成功后，修改 `index.html` 中的 API 地址：
+
 ```javascript
-const DASHBOARD_API = 'https://hotel-dashboard.onrender.com/api/collect';
+// 第 3311 行附近
+const DASHBOARD_API = 'https://<username>.alwaysdata.net/api/collect';
 ```
 
-### 5. 访问看板
-`https://hotel-dashboard.onrender.com/?auth=admin888`
+修改后 push 到 GitHub，GitHub Actions 会自动部署到 Pages。
 
-### 注意事项
-- Free plan 首次访问有 30-50 秒冷启动
-- 每月 750 小时免费额度
-- 15 分钟无请求后自动休眠
+---
 
+## 常见问题排查
 
-## 方案二：PythonAnywhere 免费部署
-
-### 1. 创建账号
-https://www.pythonanywhere.com/ → Create a Beginner account
-
-### 2. 上传文件
-- Web → Add a new web app → Flask → Python 3.10+
-- Upload `server.py`, `requirements.txt` 和 `templates/` 目录
-- 路径设为 `/home/<username>/dashboard/`
-
-### 3. 配置 WSGI
-编辑 WSGI 文件:
-```python
-import sys
-sys.path.insert(0, '/home/<username>/dashboard')
-from server import app as application
-```
-
-### 4. 获取地址
-`https://<username>.pythonanywhere.com`
-
-
-## 方案三：本地运行（仅开发测试）
-
-### Windows
-双击 `dashboard/start.bat`
-
-### 手动启动
+### 500 Internal Server Error
+SSH 登录后手动测试：
 ```bash
-cd dashboard
-pip install flask
-python server.py
+cd ~/dashboard
+env/bin/python -c "from server import app; print('OK')"
 ```
+查看错误日志：admin → Sites → 点击 dashboard → Logs
 
-访问: http://localhost:5099/?auth=admin888
-
-
-## 安全配置
-
-### 修改密码
+### 数据库权限错误
 ```bash
-# 方式1: 环境变量
-set DASHBOARD_PASSWORD=你的密码
-python server.py
-
-# 方式2: 直接修改 server.py 第35行
-DASHBOARD_PASSWORD = "你的密码"
+chmod 666 ~/dashboard/submissions.db
 ```
 
-### 生产环境（可选）
+### 模板找不到
+确认 `templates/` 目录在上传时没有遗漏：
 ```bash
-pip install gunicorn
-gunicorn -w 2 -b 0.0.0.0:5099 server:app
+ls ~/dashboard/templates/
+# 应该看到 dashboard.html
 ```
+
+### 修改看板密码
+编辑远程 `server.py`:
+```bash
+nano ~/dashboard/server.py
+# 搜索 DASHBOARD_PASSWORD 修改
+```
+
+---
+
+## 安全建议
+
+1. **修改默认密码**：上线后立即改 `server.py` 中的 `DASHBOARD_PASSWORD`
+2. **HTTPS**：alwaysdata 自动提供，无需额外配置
+3. **数据库备份**：定期备份 `submissions.db`
+4. **日志监控**：关注是否有异常请求

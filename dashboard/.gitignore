@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.pyo
+submissions.db
+*.db-journal
+env/
+*.egg-info/
