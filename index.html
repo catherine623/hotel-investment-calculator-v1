@@ -1099,11 +1099,11 @@ const TIER_PARAMS = {
   4: { // 三线及以下
     label: '三线及以下', cities: '地级市/县城',
     energy: 0.050, supplies: 0.038, maintenance: 0.020, marketingOther: 0.018, admin: 0.020, brandMgmt: 0.040,
-    staffRatio: 0.20, managerSalary: 10000, staffSalary: 6000,
+    staffRatio: 0.20, managerSalary: 7000, staffSalary: 3500,
     otaPct: 0.55, corpPct: 0.15, groupPct: 0.15, walkinPct: 0.05, directPct: 0.10,
     revparDesc: '100–200 元', paybackDesc: '4–8 年', investPerRoomDesc: '8–15 万/间',
     paybackGood: 5, paybackFeasible: 8,
-    desc: '三线城市投资最小但需求波动较大，OTA渠道主导（约55%），散客占比约5%。人工成本按0.2人房比计算（店长≥1万/月，员工≥6千/月），需重点关注本地人口流动和大型项目落地。'
+    desc: '三线城市投资最小但需求波动较大，OTA渠道主导（约55%），散客占比约5%。人工成本按0.2人房比计算（店长≥0.7万/月，员工≥0.35万/月），需重点关注本地人口流动和大型项目落地。'
   }
 };
 
@@ -2180,14 +2180,17 @@ function generateReport() {
 
   const otaCostPct = calcOtaCostPct(effectiveOtaPct);
 
+  // 布草洗涤费：固定8元/间，转换为占客房收入比例
+  const laundryYuanPerRoom = 8;
+  const laundryRate = adr > 0 ? laundryYuanPerRoom / adr : 0;
+
   // 度假酒店使用行业运营成本明细的一级项目
   let costItems;
   if (isResortMode) {
     costItems = [
       { key: 'labor', name: '工资及福利', pct: laborRatio, color: '#e91e63' },
-      { key: 'energy', name: '能源费用', pct: getParam('energy'), color: '#00acc1' },
+      { key: 'energy', name: '能源费用（含布草洗涤8元/间）', pct: getParam('energy') + laundryRate, color: '#00acc1' },
       { key: 'supplies', name: '客用品消耗', pct: 0.036, color: '#7c4dff' },
-      { key: 'laundry', name: '洗涤费', pct: 0.011, color: '#8d6e63' },
       { key: 'maintenance', name: '工程维修及维保费', pct: getParam('maintenance'), color: '#ff7043' },
       { key: 'otaComm', name: '网络佣金（OTA）', pct: otaCostPct, color: '#e74c3c' },
       { key: 'marketing', name: '营销费（含物业绿化等）', pct: 0.030, color: '#4caf50' },
@@ -2201,7 +2204,7 @@ function generateReport() {
       { key: 'otaComm', name: 'OTA平台佣金', pct: otaCostPct, color: '#e74c3c', note: `=15%佣率×${(effectiveOtaPct*100).toFixed(0)}%OTA渠道占比` },
       { key: 'tax', name: '营业税及附加', pct: TAX_RATE, color: '#f39c12' },
       { key: 'labor', name: '人工成本', pct: laborRatio, color: '#e91e63', note: `=${staffCount}人（含24h前台/技术支持）` },
-      { key: 'energy', name: '能源费用（24h高功耗PC+散热）', pct: getParam('energy'), color: '#00acc1' },
+      { key: 'energy', name: '能源费用（24h高功耗PC+散热+布草洗涤8元/间）', pct: getParam('energy') + laundryRate, color: '#00acc1' },
       { key: 'supplies', name: '外设耗材（键鼠/耳机/零食饮料）', pct: getParam('supplies'), color: '#7c4dff' },
       { key: 'maintenance', name: '设备维保费（质保期内）', pct: getParam('maintenance'), color: '#ff7043' },
       { key: 'brandMgmt', name: '品牌管理费', pct: getParam('brandMgmt'), color: '#ab47bc', note: `=${(getParam('brandMgmt')*100).toFixed(0)}%×营业总收入（GMV），按月确认` },
@@ -2214,7 +2217,7 @@ function generateReport() {
       { key: 'otaComm', name: 'OTA平台佣金', pct: otaCostPct, color: '#e74c3c', note: `=15%佣率×${(effectiveOtaPct*100).toFixed(0)}%OTA渠道占比` },
       { key: 'tax', name: '营业税及附加', pct: TAX_RATE, color: '#f39c12' },
       { key: 'labor', name: '人工成本', pct: laborRatio, color: '#e91e63', note: `=${staffCount}人×月均¥${(monthlyLaborCost/1000).toFixed(1)}千÷客房收入` },
-      { key: 'energy', name: '能源费用（水电气）', pct: getParam('energy'), color: '#00acc1' },
+      { key: 'energy', name: '能源费用（水电气+布草洗涤8元/间）', pct: getParam('energy') + laundryRate, color: '#00acc1' },
       { key: 'supplies', name: '客房消耗品', pct: getParam('supplies'), color: '#7c4dff' },
       { key: 'maintenance', name: '维修维护费', pct: getParam('maintenance'), color: '#ff7043' },
       { key: 'brandMgmt', name: '品牌管理费', pct: getParam('brandMgmt'), color: '#ab47bc', note: `=${(getParam('brandMgmt')*100).toFixed(0)}%×营业总收入（GMV），按月确认` },
