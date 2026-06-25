@@ -136,11 +136,11 @@ def init_db():
 class DataCleaner:
     """酒店投资数据清洗器"""
     
-    # 合理范围阈值
+    # 合理范围阈值（剔除特别大/特别小的异常值）
     THRESHOLDS = {
         'rooms':         (10, 2000),       # 房间数
-        'investment':    (50, 50000),       # 投资额(万元)
-        'annual_rent':   (0, 10000),        # 年租金(万元)
+        'investment':    (80, 30000),       # 投资额(万元) — 剔除<80万和>3亿的极端值
+        'annual_rent':   (0, 5000),         # 年租金(万元) — 剔除>5000万的极端值
         'adr':           (50, 5000),        # ADR(元)
         'occupancy':     (30, 100),         # 入住率(%)
         'non_room_pct':  (0, 60),           # 非客房收入占比(%)
@@ -149,6 +149,9 @@ class DataCleaner:
         'annual_revenue':(5, 50000),        # 年营收(万元)
         'staff_count':   (1, 500),          # 员工数
     }
+    
+    # 关键字段：超出阈值直接标记为可疑（对应剔除逻辑）
+    CRITICAL_FIELDS = {'investment', 'rooms', 'annual_revenue', 'payback_years'}
     
     # 城市名称标准化映射
     CITY_NORMALIZE = {
@@ -200,10 +203,10 @@ class DataCleaner:
                 cleaned[field] = val
         
         # 3. 逻辑一致性检查
-        # 投资额 vs 房间数: 单房投资应在5-50万之间
+        # 投资额 vs 房间数: 单房投资应在5-60万之间（剔除极端值）
         if cleaned.get('rooms') and cleaned.get('investment'):
             per_room = cleaned['investment'] / cleaned['rooms']
-            if per_room < 3 or per_room > 80:
+            if per_room < 5 or per_room > 60:
                 flags.append(f'per_room_suspicious:{per_room:.1f}万/间')
         
         # ADR vs 入住率: 高入住率+低ADR可疑
@@ -220,7 +223,13 @@ class DataCleaner:
                     flags.append(f'revenue_mismatch:expected~{expected:.1f},actual={actual:.1f}')
         
         # 4. 设置标记
-        cleaned['is_suspicious'] = 1 if len(flags) >= 2 else (1 if any('suspicious' in f for f in flags) else 0)
+        # 任一关键字段超阈值 → 标记为可疑
+        has_critical_flag = any(
+            any(keyword in f for keyword in [f'{cf}_low', f'{cf}_high', f'{cf}_invalid'])
+            for cf in cls.CRITICAL_FIELDS
+            for f in flags
+        )
+        cleaned['is_suspicious'] = 1 if (has_critical_flag or len(flags) >= 2 or any('suspicious' in f for f in flags)) else 0
         cleaned['clean_note'] = '; '.join(flags) if flags else None
         
         return cleaned

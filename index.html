@@ -3305,13 +3305,9 @@ function showImportMsg(msg, type) {
 // ============================================================
 // 看板数据收集 - 发送至后台 API
 // ============================================================
-const DASHBOARD_API = 'https://your-dashboard-server.com/api/collect'; // TODO: 替换为实际部署地址
+const DASHBOARD_API = 'https://cwycatherine623.pythonanywhere.com/api/collect';
 
 function collectToDashboard(payload) {
-  if (!DASHBOARD_API || DASHBOARD_API.includes('your-dashboard-server')) {
-    // 未配置后端地址，跳过
-    return;
-  }
   try {
     fetch(DASHBOARD_API, {
       method: 'POST',
