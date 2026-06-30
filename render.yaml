@@ -1,0 +1,15 @@
+services:
+  # Flask Dashboard Backend
+  - type: web
+    name: hotel-dashboard
+    env: python
+    region: singapore
+    plan: free
+    rootDir: dashboard
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    envVars:
+      - key: DASHBOARD_PASSWORD
+        value: admin888
+      - key: PYTHON_VERSION
+        value: 3.13.12
