@@ -3,6 +3,7 @@ dashboard/data/
 # 已移除敏感文件 — 备份由 _secrets_backup/ 保管
 # 禁止提交任何未混淆源码和拆包小程序源文件
 index.bak-*.html
+index.old-*.html
 v1_source/
 miniprogram/
 *.wxapkg
@@ -10,3 +11,10 @@ miniprogram/
 decrypt_*.py
 unpack_*.py
 __APP___*.wxapkg
+
+# 构建产物
+node_modules/
+source.html
+
+# 工作区文件
+.workbuddy/

