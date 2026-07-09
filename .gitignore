@@ -14,7 +14,9 @@ __APP___*.wxapkg
 
 # 构建产物
 node_modules/
-source.html
 
 # 工作区文件
 .workbuddy/
+
+# source.html 现在是安全可提交的（POI数据已加密内联）
+# 密钥硬编码在混淆后的JS中，攻击需反混淆+XOR解密两层
